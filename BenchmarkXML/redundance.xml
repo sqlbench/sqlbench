@@ -1,0 +1,5074 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<sql_benchmark>
+  <name>SQL Benchmark 1</name>
+  <author></author>
+  <description>Query rewriting benchmark</description>
+  <init_script>
+    <default_statement_list>
+      <statements />
+    </default_statement_list>
+    <specific_statement_lists>
+      <specific_statement_list>
+        <provider_name>Microsoft SQL Server</provider_name>
+        <statements>
+          <statement>
+            <command_text>-- Drop tables A and B, if they exist.
+
+IF OBJECT_ID('dbo.A', 'U') IS NOT NULL DROP TABLE dbo.A;
+
+IF OBJECT_ID('dbo.B', 'U') IS NOT NULL DROP TABLE dbo.B;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Create table A.
+
+WITH
+    x AS 
+    (
+        SELECT n
+        FROM
+        (
+            VALUES (0), (1), (2), (3), (4), (5), (6), (7), (8), (9)
+        ) v(n)
+    ),
+    t1 AS
+    (
+        SELECT ones.n + 10 * tens.n + 100 * hundreds.n + 1000 * thousands.n + 10000 * tenthousands.n + 100000 * hundredthousands.n as id  
+        FROM x ones, x tens, x hundreds, x thousands, x tenthousands, x hundredthousands
+    ),
+    t2 AS
+    (
+        SELECT id, id % 100 groupby
+        FROM t1
+    ),
+    t3 AS
+    (
+        SELECT b.id, b.groupby, ROW_NUMBER() OVER (PARTITION BY groupby ORDER BY id) orderby
+        FROM t2 b
+    )
+SELECT
+    CAST(id AS INT) id, 
+    CAST(groupby AS INT) groupby, 
+    CAST(orderby AS INT) orderby,
+    CAST(orderby % 9173 AS int) fkb, 
+    CAST(id % 911 AS int) search, 
+    LEFT('Value ' + CAST(id AS VARCHAR) + ' ' + REPLICATE('*', 1000), 1000) AS padding
+INTO A
+FROM t3;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Create table B.
+
+WITH
+    x AS 
+    (
+        SELECT n
+        FROM
+        (
+            VALUES (0), (1), (2), (3), (4), (5), (6), (7), (8), (9)
+        ) v(n)
+    ),
+    t1 AS
+    (
+        SELECT ones.n + 10 * tens.n + 100 * hundreds.n + 1000 * thousands.n AS id  
+        FROM x ones, x tens, x hundreds, x thousands       
+    )
+SELECT
+    CAST(id AS INT) id,
+    CAST((id + FLOOR(100000 / (id + 1))) % 100 AS INT) groupby,
+    CAST(id % 901 AS INT) search, 
+    LEFT('Value ' + CAST(id AS VARCHAR) + ' ' + REPLICATE('*', 1000), 1000) AS padding
+INTO B
+FROM t1;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert outlier data into A.
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000000, NULL, NULL, NULL, NULL, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000001, 100, NULL, NULL, NULL, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000002, 99, 10000, NULL, NULL, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000003, 101, 10000, 1, NULL, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000004, NULL, NULL, 1, NULL, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000005, NULL, NULL, 500, NULL, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000006, NULL, NULL, 1, 1, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000007, NULL, NULL, NULL, 1, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert outlier data into B.
+
+INSERT INTO B(id, groupby, search, padding)
+VALUES (10000, NULL, NULL, NULL);
+
+INSERT INTO B(id, groupby, search, padding)
+VALUES (10001, NULL, 1, NULL);
+
+INSERT INTO B(id, groupby, search, padding)
+VALUES (10002, 1, NULL, NULL);
+
+INSERT INTO B(id, groupby, search, padding)
+VALUES (10003, 1, 1, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Set id mandatory in A and B.
+
+ALTER TABLE A ALTER COLUMN id INT NOT NULL;
+
+ALTER TABLE B ALTER COLUMN id INT NOT NULL;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Set id as the primary key in A and B.
+
+ALTER TABLE A ADD CONSTRAINT pk_a_id PRIMARY KEY NONCLUSTERED (id);
+
+ALTER TABLE B ADD CONSTRAINT pk_b_id PRIMARY KEY NONCLUSTERED (id);</command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+      <specific_statement_list>
+        <provider_name>Oracle Database</provider_name>
+        <statements>
+          <statement>
+            <command_text>-- Drop table A, if it exists.
+
+BEGIN
+   EXECUTE IMMEDIATE 'DROP TABLE A';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -942 THEN
+         RAISE;
+      END IF;
+END;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Drop table B, if it exists.
+ 
+BEGIN
+   EXECUTE IMMEDIATE 'DROP TABLE B';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -942 THEN
+         RAISE;
+      END IF;
+END;
+ </command_text>
+          </statement>
+          <statement>
+            <command_text>-- Create table A.
+
+CREATE TABLE A AS
+WITH
+    x AS 
+    (
+        SELECT 0 n FROM dual
+        UNION ALL
+        SELECT 1 FROM dual
+        UNION ALL
+        SELECT 2 FROM dual
+        UNION ALL
+        SELECT 3 FROM dual
+        UNION ALL
+        SELECT 4 FROM dual
+        UNION ALL
+        SELECT 5 FROM dual
+        UNION ALL
+        SELECT 6 FROM dual
+        UNION ALL
+        SELECT 7 FROM dual
+        UNION ALL
+        SELECT 8 FROM dual
+        UNION ALL
+        SELECT 9 FROM dual  
+    ),
+    t1 AS
+    (
+        SELECT ones.n + 10 * tens.n + 100 * hundreds.n + 1000 * thousands.n + 10000 * tenthousands.n + 100000 * hundredthousands.n AS id  
+        FROM x ones, x tens, x hundreds, x thousands, x tenthousands, x hundredthousands
+    ),
+    t2 AS
+    (
+        SELECT id, MOD(id, 100) groupby
+        FROM t1
+    ),
+    t3 AS
+    (
+        SELECT  b.id, b.groupby, ROW_NUMBER() OVER (PARTITION BY groupby ORDER BY id) orderby
+        FROM t2 b
+    )
+SELECT
+    CAST(id AS INT) id, 
+    CAST(groupby AS INT) groupby, 
+    CAST(orderby AS INT) orderby,
+    CAST(MOD(orderby, 9173) AS INT) fkb, 
+    CAST(MOD(id, 911) AS INT) search, 
+    RPAD(CONCAT('Value ', id), 1000, '*') AS padding
+FROM t3;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Create table B.
+
+CREATE TABLE B AS
+WITH
+    x AS 
+    (
+        SELECT 0 n FROM dual
+        UNION ALL
+        SELECT 1 FROM dual
+        UNION ALL 
+        SELECT 2 FROM dual
+        UNION ALL 
+        SELECT 3 FROM dual
+        UNION ALL 
+        SELECT 4 FROM dual
+        UNION ALL 
+        SELECT 5 FROM dual
+        UNION ALL 
+        SELECT 6 FROM dual
+        UNION ALL 
+        SELECT 7 FROM dual
+        UNION ALL 
+        SELECT 8 FROM dual
+        UNION ALL 
+        SELECT 9 FROM dual  
+    ),
+    t1 AS
+    (
+        SELECT ones.n + 10 * tens.n + 100 * hundreds.n + 1000 * thousands.n AS id
+        FROM x ones, x tens, x hundreds, x thousands       
+    )
+SELECT
+    CAST(id AS INT) id,
+    CAST(MOD(id + FLOOT(100000 / (id + 1)), 100) AS INT) groupby,
+    CAST(MOD(id, 901) AS INT) search, 
+    RPAD(CONCAT('Value ', id), 1000, '*') AS padding  
+FROM t1;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert outlier data into A.
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000000, NULL, NULL, NULL, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000001, 100, NULL, NULL, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000002, 99, 10000, NULL, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000003, 101, 10000, 1, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000004, NULL, NULL, 1, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000005, NULL, NULL, 500, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000006, NULL, NULL, 1, 1, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000007, NULL, NULL, NULL, 1, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert outlier data into B.
+
+INSERT INTO B(id, groupby, search, padding)
+VALUES (10000, NULL, NULL, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding)
+VALUES (10001, NULL, 1, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding)
+VALUES (10002, 1, NULL, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding)
+VALUES (10003, 1, 1, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Set id mandatory in A and B.
+
+ALTER TABLE A modify id INT NOT NULL;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>ALTER TABLE B modify id INT NOT NULL;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Set id as the primary key in A and B.
+
+ALTER TABLE A ADD CONSTRAINT pk_a_id PRIMARY KEY (id);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>ALTER TABLE B ADD CONSTRAINT pk_b_id PRIMARY KEY (id);
+</command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+      <specific_statement_list>
+        <provider_name>PostgreSQL</provider_name>
+        <statements>
+          <statement>
+            <command_text>-- Drop tables A and B, if they exist.
+
+DROP TABLE IF EXISTS A CASCADE;
+
+DROP TABLE IF EXISTS B CASCADE;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Create empty tables A and B.
+
+CREATE TABLE A
+(
+    id INT,
+    groupby INT,
+    orderby INT,
+    fkb INT,
+    search INT,
+    padding VARCHAR(1000)
+);
+
+
+CREATE TABLE B
+(
+    id INT,
+    groupby INT,
+    search INT,
+    padding VARCHAR(1000)
+);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert data into A.
+
+INSERT INTO A
+WITH
+    t1 AS
+    (
+        SELECT id
+        FROM GENERATE_SERIES(0, 999999) id
+    ),
+    t2 AS
+    (
+        SELECT id, id % 100 groupby
+        FROM t1
+    ),
+    t3 AS
+    (
+        SELECT b.id, b.groupby, ROW_NUMBER() OVER (PARTITION BY groupby ORDER BY id) orderby
+        FROM t2 b
+    )
+SELECT
+    id,
+    groupby,
+    orderby orderby,
+    CAST(orderby % 9173 AS INT) fkb,
+    CAST(id % 911 AS INT) lsearch,
+    RPAD('Value ' || id || ' ' , 1000, '*') AS padding
+FROM t3;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert data into B.
+
+INSERT INTO B
+SELECT
+    CAST(id AS INT) id,
+    CAST((id + FLOOR(100000 / (id + 1))) AS INT) % 100 groupby,
+    CAST(id % 901 AS INT) lsearch,
+    RPAD('Value ' || id || ' ' , 1000, '*') AS padding
+FROM GENERATE_SERIES(0, 9999) id;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert outlier data into A.
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000000, NULL, NULL, NULL, NULL, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000001, 100, NULL, NULL, NULL, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000002, 99, 10000, NULL, NULL, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000003, 101, 10000, 1, NULL, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000004, NULL, NULL, 1, NULL, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000005, NULL, NULL, 500, NULL, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000006, NULL, NULL, 1, 1, '*');
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000007, NULL, NULL, NULL, 1, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert outlier data into B.
+
+INSERT INTO B(id, groupby, search, padding)
+VALUES (10000, NULL, NULL, NULL);
+
+INSERT INTO B(id, groupby, search, padding)
+VALUES (10001, NULL, 1, NULL);
+
+INSERT INTO B(id, groupby, search, padding)
+VALUES (10002, 1, NULL, NULL);
+
+INSERT INTO B(id, groupby, search, padding)
+VALUES (10003, 1, 1, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Set id mandatory in A and B.
+
+ALTER TABLE A ALTER COLUMN id SET NOT NULL;
+
+ALTER TABLE B ALTER COLUMN id SET NOT NULL;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Set id as the primary key in A and B.
+
+ALTER TABLE A ADD CONSTRAINT pk_a_id PRIMARY KEY (id);
+
+ALTER TABLE B ADD CONSTRAINT pk_b_id PRIMARY KEY (id);</command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+      <specific_statement_list>
+        <provider_name>MySQL</provider_name>
+        <statements>
+          <statement>
+            <command_text>-- Drop tables A and B, if they exist.
+
+DROP TABLE IF EXISTS A;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>DROP TABLE IF EXISTS B;
+ </command_text>
+          </statement>
+          <statement>
+            <command_text>-- Create table A.
+
+CREATE TABLE A
+(
+    id INT NOT NULL PRIMARY KEY,
+    groupby INT NULL,
+    orderby INT NULL,
+    fkb INT NULL,
+    search INT NULL,
+    padding VARCHAR(1000) NULL
+)  AS
+WITH
+    x AS 
+    (
+        SELECT 0 n FROM dual
+        UNION ALL
+        SELECT 1 FROM dual
+        UNION ALL 
+        SELECT 2 FROM dual
+        UNION ALL 
+        SELECT 3 FROM dual
+        UNION ALL 
+        SELECT 4 FROM dual
+        UNION ALL 
+        SELECT 5 FROM dual
+        UNION ALL 
+        SELECT 6 FROM dual
+        UNION ALL 
+        SELECT 7 FROM dual
+        UNION ALL 
+        SELECT 8 FROM dual
+        UNION ALL 
+        SELECT 9 FROM dual  
+    ),
+    t1 AS
+    (
+        SELECT ones.n + 10 * tens.n + 100 * hundreds.n + 1000 * thousands.n + 10000 * tenthousands.n + 100000 * hundredthousands.n AS id  
+        FROM x ones, x tens, x hundreds, x thousands, x tenthousands, x hundredthousands
+    ),
+    t2 AS
+    (
+        SELECT id, MOD(id, 100) groupby
+        FROM t1
+    ),
+    t3 AS
+    (
+        SELECT b.id, b.groupby, ROW_NUMBER() OVER (PARTITION BY b.groupby ORDER BY b.id) orderby
+        FROM t2 b
+    )
+SELECT
+    CAST(id AS unsigned) id, 
+    CAST(groupby AS unsigned) groupby, 
+    CAST(orderby AS unsigned) orderby,
+    CAST(MOD(orderby, 9173) AS unsigned) fkb, 
+    CAST(MOD(id, 911) AS unsigned) search, 
+    RPAD(CONCAT('Value ', id), 1000, '*') AS padding   
+FROM t3;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Create table B.
+
+CREATE TABLE B
+(
+    id INT NOT NULL PRIMARY KEY,
+    groupby INT NULL,
+    search INT NULL,
+    padding VARCHAR(1000) NULL
+) AS
+WITH
+    x AS 
+    (
+        SELECT 0 n FROM dual
+        UNION ALL 
+        SELECT 1 FROM dual
+        UNION ALL 
+        SELECT 2 FROM dual
+        UNION ALL 
+        SELECT 3 FROM dual
+        UNION ALL 
+        SELECT 4 FROM dual
+        UNION ALL 
+        SELECT 5 FROM dual
+        UNION ALL 
+        SELECT 6 FROM dual
+        UNION ALL 
+        SELECT 7 FROM dual
+        UNION ALL 
+        SELECT 8 FROM dual
+        UNION ALL 
+        SELECT 9 FROM dual  
+    ),
+    t1 AS
+    (
+        SELECT ones.n + 10 * tens.n + 100 * hundreds.n + 1000 * thousands.n AS id  
+        FROM x ones, x tens, x hundreds, x thousands       
+    )
+SELECT
+    CAST(id as unsigned) id,
+    CAST(mod(id + floor(100000 / (id + 1)) , 100) AS unsigned) groupby,
+    CAST(mod(id, 901) AS unsigned) search, 
+    RPAD(CONCAT('Value ', id), 1000, '*') AS padding
+FROM t1;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert outlier data into A.
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding) VALUES (1000000, NULL, NULL, NULL, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding) VALUES (1000001, 100, NULL, NULL, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding) VALUES (1000002, 99, 10000, NULL, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding) VALUES (1000003, 101, 10000, 1, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding) VALUES (1000004, NULL, NULL, 1, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding) VALUES (1000005, NULL, NULL, 500, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding) VALUES (1000006, NULL, NULL, 1, 1, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding) VALUES (1000007, NULL, NULL, NULL, 1, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert outlier data into B.
+
+INSERT INTO B(id, groupby, search, padding) VALUES (10000, NULL, NULL, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding) VALUES (10001, NULL, 1, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding) VALUES (10002, 1, NULL, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding) VALUES (10003, 1, 1, NULL);
+</command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+      <specific_statement_list>
+        <provider_name>H2</provider_name>
+        <statements>
+          <statement>
+            <command_text>-- Drop tables A and B, if they exist.
+
+DROP TABLE IF EXISTS A;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>DROP TABLE IF EXISTS B;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Create table A.
+
+CREATE TABLE A
+(
+    id INT NOT NULL PRIMARY KEY,
+    groupby INT NULL,
+    orderby INT NULL,
+    fkb INT NULL,
+    search INT NULL,
+    padding VARCHAR(1000) NULL
+) AS
+WITH
+    x AS
+    (
+        SELECT 0 n FROM dual
+        UNION ALL
+        SELECT 1 FROM dual
+        UNION ALL
+        SELECT 2 FROM dual
+        UNION ALL
+        SELECT 3 FROM dual
+        UNION ALL
+        SELECT 4 FROM dual
+        UNION ALL
+        SELECT 5 FROM dual
+        UNION ALL
+        SELECT 6 FROM dual
+        UNION ALL
+        SELECT 7 FROM dual
+        UNION ALL
+        SELECT 8 FROM dual
+        UNION ALL
+        SELECT 9 FROM dual
+    ),
+    t1 AS
+    (
+        SELECT ones.n + 10 * tens.n + 100 * hundreds.n + 1000 * thousands.n + 10000 * tenthousands.n + 100000 * hundredthousands.n AS id
+        FROM x ones, x tens, x hundreds, x thousands, x tenthousands, x hundredthousands
+    ),
+    t2 AS
+    (
+        SELECT id, MOD(id, 100) groupby
+        FROM t1
+    ),
+    t3 AS
+    (
+        SELECT b.id, b.groupby, ROW_NUMBER() OVER (PARTITION BY b.groupby ORDER BY b.id) orderby
+        FROM t2 b
+    )
+SELECT
+    CAST(id AS INT) id,
+    CAST(groupby AS INT) groupby,
+    CAST(orderby AS INT) orderby,
+    CAST(MOD(orderby, 9173) AS INT) fkb,
+    CAST(MOD(id, 911) AS INT) search,
+    RPAD(CONCAT('Value ', id), 1000, '*') AS padding
+FROM t3;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Create table B.
+
+CREATE TABLE B
+(
+    id INT NOT NULL PRIMARY KEY,
+    groupby INT NULL,
+    search INT NULL,
+    padding VARCHAR(1000) NULL
+) AS
+WITH x AS 
+(
+    SELECT 0 n FROM dual
+    UNION ALL
+    SELECT 1 FROM dual
+    UNION ALL
+    SELECT 2 FROM dual
+    UNION ALL
+    SELECT 3 FROM dual
+    UNION ALL
+    SELECT 4 FROM dual
+    UNION ALL
+    SELECT 5 FROM dual
+    UNION ALL
+    SELECT 6 FROM dual
+    UNION ALL
+    SELECT 7 FROM dual
+    UNION ALL
+    SELECT 8 FROM dual
+    UNION ALL
+    SELECT 9 FROM dual  
+),
+t1 AS
+(
+    SELECT ones.n + 10 * tens.n + 100 * hundreds.n + 1000 * thousands.n AS id
+    FROM x ones, x tens, x hundreds, x thousands       
+)
+SELECT
+    CAST(id AS INT) id,
+    CAST(MOD(id + FLOOR(100000 / (id+1)), 100) AS INT) groupby,
+    CAST(MOD(id, 901) AS INT) search, 
+    RPAD(CONCAT('Value ', id), 1000, '*') AS padding
+FROM t1;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert outlier data into A.
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000000, NULL, NULL, NULL, NULL, '*');</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000001, 100, NULL, NULL, NULL, '*');</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000002, 99, 10000, NULL, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000003, 101, 10000, 1, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000004, NULL, NULL, 1, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000005, NULL, NULL, 500, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000006, NULL, NULL, 1, 1, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000007, NULL, NULL, NULL, 1, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert outlier data into B.
+
+INSERT INTO B(id, groupby, search, padding)
+VALUES (10000, NULL, NULL, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding)
+VALUES (10001, NULL, 1, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding)
+VALUES (10002, 1, NULL, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding)
+VALUES (10003, 1, 1, NULL);</command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+      <specific_statement_list>
+        <provider_name>Firebird</provider_name>
+        <statements>
+          <statement>
+            <command_text>/* Create table A. */
+
+CREATE TABLE A
+(
+    id INT PRIMARY KEY,
+    groupby INT,
+    orderby INT,
+    fkb INT,
+    search INT,
+    padding VARCHAR(1000)
+);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>/* Create table B. */
+
+CREATE TABLE B
+(
+    id INT PRIMARY KEY,
+    groupby INT,
+    search INT,
+    padding VARCHAR(1000)
+);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>/* Insert data into A. */
+
+INSERT INTO A 
+    WITH x AS 
+    (
+        SELECT 0 n FROM RDB$DATABASE
+        UNION ALL
+        SELECT 1 FROM RDB$DATABASE
+        UNION ALL
+        SELECT 2 FROM RDB$DATABASE
+        UNION ALL
+        SELECT 3 FROM RDB$DATABASE
+        UNION ALL
+        SELECT 4 FROM RDB$DATABASE
+        UNION ALL
+        SELECT 5 FROM RDB$DATABASE
+        UNION ALL
+        SELECT 6 FROM RDB$DATABASE
+        UNION ALL
+        SELECT 7 FROM RDB$DATABASE
+        UNION ALL
+        SELECT 8 FROM RDB$DATABASE
+        UNION ALL
+        SELECT 9 FROM RDB$DATABASE  
+    ),
+    t1 AS
+    (
+        SELECT ones.n + 10 * tens.n + 100 * hundreds.n + 1000 * thousands.n + 10000 * tenthousands.n + 100000 * hundredthousands.n AS id
+        FROM x ones, x tens, x hundreds, x thousands, x tenthousands, x hundredthousands
+    ),
+    t2 AS
+    (
+        SELECT  id,
+        MOD(id, 100) groupby
+        FROM t1
+    ),
+    t3 AS
+    (
+        SELECT  b.id, b.groupby, ROW_NUMBER() OVER (PARTITION BY b.groupby ORDER BY b.id) orderby
+        FROM t2 b
+    )
+SELECT
+    cast(id AS INT) id, 
+    cast(groupby AS INT) groupby, 
+    cast(orderby AS INT) orderby,
+    cast(MOD(orderby, 9173) AS INT) fkb, 
+    cast(MOD(id, 911) AS INT) search, 
+    RPAD('Value ' || id, 1000, '*') AS padding   
+FROM t3;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>/* Insert data into B. */
+
+INSERT INTO B
+    WITH x AS 
+    (
+        SELECT 0 n FROM RDB$DATABASE
+        UNION ALL
+        SELECT 1 FROM RDB$DATABASE
+        UNION ALL 
+        SELECT 2 FROM RDB$DATABASE
+        UNION ALL 
+        SELECT 3 FROM RDB$DATABASE
+        UNION ALL 
+        SELECT 4 FROM RDB$DATABASE
+        UNION ALL 
+        SELECT 5 FROM RDB$DATABASE
+        UNION ALL 
+        SELECT 6 FROM RDB$DATABASE
+        UNION ALL 
+        SELECT 7 FROM RDB$DATABASE
+        UNION ALL 
+        SELECT 8 FROM RDB$DATABASE
+        UNION ALL 
+        SELECT 9 FROM RDB$DATABASE  
+    ),
+    t1 AS
+    (
+        SELECT ones.n + 10 * tens.n + 100 * hundreds.n + 1000 * thousands.n as id  
+        FROM x ones, x tens, x hundreds, x thousands
+    )
+SELECT
+    CAST(id AS INT) id,
+    CAST(MOD(id + FLOOR(100000 / (id + 1)), 100) AS INT) groupby,
+    CAST(MOD(id, 901) AS INT) search, 
+    RPAD('Value ' || id, 1000, '*') AS padding
+FROM t1;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>/* Insert outlier data into A. */
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000000, NULL, NULL, NULL, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000001, 100, NULL, NULL, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000002, 99, 10000, NULL, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000003, 101, 10000, 1, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000004, NULL, NULL, 1, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000005, NULL, NULL, 500, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000006, NULL, NULL, 1, 1, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000007, NULL, NULL, NULL, 1, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>/* Insert outlier data into B. */
+
+INSERT INTO B(id, groupby, search, padding)
+VALUES (10000, NULL, NULL, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding)
+VALUES (10001, NULL, 1, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding)
+VALUES (10002, 1, NULL, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding)
+VALUES (10003, 1, 1, NULL);
+</command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+      <specific_statement_list>
+        <provider_name>SQLite</provider_name>
+        <statements>
+          <statement>
+            <command_text>-- Drop tables A and B, if they exist.
+
+DROP TABLE IF EXISTS A;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>DROP TABLE IF EXISTS B;
+ </command_text>
+          </statement>
+          <statement>
+            <command_text>-- Increase the cache size.
+
+PRAGMA cache_size = 2000000;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Create table A.
+
+CREATE TABLE A AS
+WITH
+    x AS 
+    (
+        SELECT 0 AS n
+        UNION ALL
+        SELECT 1
+        UNION ALL
+        SELECT 2
+        UNION ALL
+        SELECT 3
+        UNION ALL 
+        SELECT 4
+        UNION ALL 
+        SELECT 5
+        UNION ALL 
+        SELECT 6
+        UNION ALL 
+        SELECT 7
+        UNION ALL 
+        SELECT 8
+        UNION ALL 
+        SELECT 9 
+    ),
+    t1 AS
+    (
+        SELECT ones.n + 10 * tens.n + 100 * hundreds.n + 1000 * thousands.n + 10000 * tenthousands.n + 100000 * hundredthousands.n AS id  
+        FROM x ones, x tens, x hundreds, x thousands, x tenthousands, x hundredthousands
+    ),
+    t2 AS
+    (
+        SELECT id, id % 100 groupby
+        FROM t1
+    ),
+    t3 AS
+    (
+        SELECT  b.id, b.groupby, ROW_NUMBER() OVER (PARTITION BY b.groupby ORDER BY b.id) orderby
+        FROM t2 b
+    )
+SELECT
+    CAST(id AS UNSIGNED) id, 
+    CAST(groupby AS UNSIGNED) groupby, 
+    CAST(orderby AS UNSIGNED) orderby,
+    CAST(orderby % 9173 AS UNSIGNED) fkb, 
+    CAST(id % 911 AS UNSIGNED) search, 
+    SUBSTR('Value ' || id || PRINTF('%.' || 1000 || 'c', '*'), 1, 1000) AS padding   
+FROM t3;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Create table B.
+
+CREATE TABLE B AS
+    WITH x AS 
+    (
+        SELECT 0 n
+        UNION ALL 
+        SELECT 1
+        UNION ALL 
+        SELECT 2
+        UNION ALL 
+        SELECT 3
+        UNION ALL 
+        SELECT 4
+        UNION ALL 
+        SELECT 5
+        UNION ALL 
+        SELECT 6
+        UNION ALL 
+        SELECT 7
+        UNION ALL 
+        SELECT 8
+        UNION ALL 
+        SELECT 9  
+    ),
+    t1 AS
+    (
+        SELECT ones.n + 10 * tens.n + 100 * hundreds.n + 1000 * thousands.n AS id  
+        FROM x ones, x tens, x hundreds, x thousands       
+    )
+SELECT
+    CAST(id AS UNSIGNED) id,
+    CAST(((id + floor(100000 / (id + 1))) % 100) AS UNSIGNED) groupby,
+    CAST((id % 901) AS UNSIGNED) search, 
+    SUBSTR('Value ' || id || PRINTF('%.' || 1000 || 'c', '*'), 1, 1000) AS padding
+FROM t1;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert outlier data into A.
+
+INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000000, NULL, NULL, NULL, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000001, 100, NULL, NULL, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding) 
+VALUES (1000002, 99, 10000, NULL, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000003, 101, 10000, 1, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000004, NULL, NULL, 1, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000005, NULL, NULL, 500, NULL, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000006, NULL, NULL, 1, 1, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO A(id, groupby, orderby, fkb, search, padding)
+VALUES (1000007, NULL, NULL, NULL, 1, '*');
+</command_text>
+          </statement>
+          <statement>
+            <command_text>-- Insert outlier data into B.
+
+INSERT INTO B(id, groupby, search, padding)
+VALUES (10000, NULL, NULL, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding)
+VALUES (10001, NULL, 1, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding)
+VALUES (10002, 1, NULL, NULL);
+</command_text>
+          </statement>
+          <statement>
+            <command_text>INSERT INTO B(id, groupby, search, padding)
+VALUES (10003, 1, 1, NULL);</command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+    </specific_statement_lists>
+  </init_script>
+  <clean_up_script>
+    <default_statement_list>
+      <statements />
+    </default_statement_list>
+    <specific_statement_lists>
+      <specific_statement_list>
+        <provider_name>Microsoft SQL Server</provider_name>
+        <statements>
+          <statement>
+            <command_text>IF OBJECT_ID('dbo.A', 'U') IS NOT NULL DROP TABLE dbo.A;
+
+IF OBJECT_ID('dbo.B', 'U') IS NOT NULL DROP TABLE dbo.B;</command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+      <specific_statement_list>
+        <provider_name>Oracle Database</provider_name>
+        <statements>
+          <statement>
+            <command_text>BEGIN
+   EXECUTE IMMEDIATE 'DROP TABLE A';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -942 THEN
+         RAISE;
+      END IF;
+END;
+</command_text>
+          </statement>
+          <statement>
+            <command_text> 
+BEGIN
+   EXECUTE IMMEDIATE 'DROP TABLE B';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -942 THEN
+         RAISE;
+      END IF;
+END;</command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+      <specific_statement_list>
+        <provider_name>PostgreSQL</provider_name>
+        <statements>
+          <statement>
+            <command_text>DROP TABLE IF EXISTS A CASCADE;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>DROP TABLE IF EXISTS B CASCADE;
+</command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+      <specific_statement_list>
+        <provider_name>Firebird</provider_name>
+        <statements>
+          <statement>
+            <command_text>DROP TABLE A;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>DROP TABLE B;
+</command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+      <specific_statement_list>
+        <provider_name>MySQL</provider_name>
+        <statements>
+          <statement>
+            <command_text>DROP TABLE IF EXISTS A;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>DROP TABLE IF EXISTS B;
+ </command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+      <specific_statement_list>
+        <provider_name>H2</provider_name>
+        <statements>
+          <statement>
+            <command_text>DROP TABLE IF EXISTS A;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>DROP TABLE IF EXISTS B;</command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+      <specific_statement_list>
+        <provider_name>SQLite</provider_name>
+        <statements>
+          <statement>
+            <command_text>DROP TABLE IF EXISTS A;
+</command_text>
+          </statement>
+          <statement>
+            <command_text>DROP TABLE IF EXISTS B;</command_text>
+          </statement>
+        </statements>
+      </specific_statement_list>
+    </specific_statement_lists>
+  </clean_up_script>
+  <test_groups>
+    <test_group>
+      <id>1</id>
+      <number>I</number>
+      <name>01</name>
+      <description></description>
+      <tests>
+        <test>
+          <id>376</id>
+          <number>1</number>
+          <name>Semi join 1</name>
+          <description></description>
+          <active>True</active>
+          <variants>
+            <variant>
+              <id>392</id>
+              <number>a</number>
+              <name>Basic</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT A.id, A.groupby, A.fkb, A.search, A.padding
+FROM A JOIN B ON A.fkb = B.id
+WHERE $PAsearch AND B.search = 1</command_text>
+              </default_statement>
+              <specific_statements>
+                <specific_statement>
+                  <provider_name>SQLite</provider_name>
+                  <not_supported>False</not_supported>
+                  <command_text>SELECT A.id, A.groupby AS groupby, A.fkb, A.search, A.padding
+FROM A JOIN B ON A.fkb = B.id
+WHERE $PAsearch AND B.search = 1</command_text>
+                </specific_statement>
+              </specific_statements>
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>382</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>390</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>984</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>992</id>
+              <number>b</number>
+              <name>Redundant computation</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT A.id, A.groupby, A.fkb, A.search, A.padding
+FROM A JOIN B ON A.fkb = B.id
+WHERE $PAsearch AND B.search + 9 = 10</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>986</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>999</id>
+              <number>c</number>
+              <name>Redundant expression</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT A.id, A.groupby, A.fkb, A.search, A.padding
+FROM A JOIN B ON A.fkb = B.id
+WHERE $PAsearch AND (B.search = 1 OR (1 = 2 AND A.fkb = 1))</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1012</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1059</id>
+              <number>d</number>
+              <name>Redundant CASE</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    A.id, 
+    CASE WHEN B.search = 1 THEN A.groupby END, 
+    CASE WHEN B.search = 1 THEN A.fkb END, 
+    A.search, A.padding
+FROM A JOIN B ON A.fkb = B.id
+WHERE $PAsearch AND B.search = 1</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1060</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1072</id>
+              <number>e</number>
+              <name>Redundant EXISTS</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT A.id, A.groupby, A.fkb, A.search, A.padding
+FROM A JOIN B ON A.fkb = B.id
+WHERE
+    $PAsearch AND
+    B.search = 1 AND
+    EXISTS
+    (
+        SELECT 1
+        FROM A
+        WHERE A.fkb = B.id AND $PAsearch
+    )</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1071</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1114</id>
+              <number>f</number>
+              <name>Redundant JOIN</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT A.id, A.groupby, A.fkb, A.search, ar.padding
+FROM
+    A 
+    JOIN B ON A.fkb = B.id
+    JOIN A ar ON A.id = ar.id
+WHERE $PAsearch AND B.search = 1</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1094</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1117</id>
+              <number>g</number>
+              <name>Redundant GROUP BY PK</name>
+              <description>GROUP BY attribute set {A.id, A.groupby, A.fkb, A.search, A.padding} needs to be unique</description>
+              <default_statement>
+                <command_text>SELECT A.id, A.groupby, A.fkb, A.search, A.padding
+FROM
+    (
+        SELECT
+            A.id, A.groupby, 
+            MAX(A.fkb) AS fkb, 
+            MAX(A.search) AS search, 
+            MAX(A.padding) AS padding
+        FROM A
+        GROUP BY A.id, A.groupby
+    ) A 
+    JOIN B ON A.fkb = B.id
+WHERE $PAsearch AND B.search = 1
+GROUP BY A.id, A.groupby, A.fkb, A.search, A.padding</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1115</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1133</id>
+              <number>h</number>
+              <name>Redundant subquery</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT A.id, A.groupby, A.fkb, A.search, 
+(
+    SELECT ar.padding
+    FROM A ar 
+    WHERE A.id = ar.id
+) padding
+FROM A JOIN B ON A.fkb = B.id
+WHERE $PAsearch AND B.search = 1</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1131</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+          </variants>
+          <selected_annotations />
+          <expected_result_size>2</expected_result_size>
+          <parametrized>True</parametrized>
+          <parameters>
+            <parameter>
+              <id>397</id>
+              <name>PAsearch</name>
+            </parameter>
+          </parameters>
+          <templates>
+            <template>
+              <id>395</id>
+              <number>high</number>
+              <expected_result_size>4</expected_result_size>
+              <selected_annotations />
+            </template>
+            <template>
+              <id>420</id>
+              <number>low</number>
+              <expected_result_size>214</expected_result_size>
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>378</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>379</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>380</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </template>
+          </templates>
+          <parameter_values>
+            <parameter_value>
+              <template_id>395</template_id>
+              <parameter_id>397</parameter_id>
+              <value>A.search = 1</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>420</template_id>
+              <parameter_id>397</parameter_id>
+              <value>A.search &lt; 100</value>
+            </parameter_value>
+          </parameter_values>
+        </test>
+        <test>
+          <id>456</id>
+          <number>2</number>
+          <name>Conditional aggregation 1</name>
+          <description></description>
+          <active>True</active>
+          <variants>
+            <variant>
+              <id>457</id>
+              <number>a</number>
+              <name>Conditional aggregation</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.groupby,
+    COUNT(CASE WHEN $PAsearch1 THEN 1 END) AS search1,
+    COUNT(CASE WHEN $PAsearch2 THEN 1 END) AS search2
+FROM B LEFT JOIN A ON A.fkb = B.id
+WHERE B.search = 1 AND B.groupby IS NOT NULL
+GROUP BY B.groupby</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>382</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>384</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>984</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>993</id>
+              <number>b</number>
+              <name>Redundant computation</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.groupby,
+    COUNT(CASE WHEN $PAsearch1 THEN 1 END) AS search1,
+    COUNT(CASE WHEN $PAsearch2 THEN 1 END) AS search2
+FROM B LEFT JOIN A ON A.fkb = B.id
+WHERE B.search * 2 = 2 AND B.groupby IS NOT NULL
+GROUP BY B.groupby</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>986</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1015</id>
+              <number>c</number>
+              <name>Redundant expression</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.groupby,
+    COUNT(CASE WHEN $PAsearch1 THEN 1 END) AS search1,
+    COUNT(CASE WHEN $PAsearch2 THEN 1 END) AS search2
+FROM B LEFT JOIN A ON A.fkb = B.id
+WHERE (B.search = 1 OR 1 = 2 AND A.fkb = 1) AND B.groupby IS NOT NULL
+GROUP BY B.groupby</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1012</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1062</id>
+              <number>d</number>
+              <name>Redundant CASE</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.groupby,
+    COUNT(CASE WHEN $PAsearch1 AND B.search = 1 THEN 1 END) AS search1,
+    COUNT(CASE WHEN $PAsearch2 AND B.search = 1 THEN 1 END) AS search2
+FROM B LEFT JOIN A ON A.fkb = B.id
+WHERE B.search = 1 AND B.groupby IS NOT NULL
+GROUP BY B.groupby</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1060</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1073</id>
+              <number>e</number>
+              <name>Redundant EXISTS</name>
+              <description>B.id needs to be a not null value (or primary key)</description>
+              <default_statement>
+                <command_text>SELECT
+    B.groupby,
+    COUNT(CASE WHEN $PAsearch1 THEN 1 END) AS search1,
+    COUNT(CASE WHEN $PAsearch2 THEN 1 END) AS search2
+FROM B LEFT JOIN A ON A.fkb = B.id
+WHERE
+    B.search = 1 AND
+    B.groupby IS NOT NULL AND 
+    EXISTS
+    (
+        SELECT 1
+        FROM B b2
+        WHERE B.id = b2.id
+    )
+GROUP BY B.groupby</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1071</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1113</id>
+              <number>f</number>
+              <name>Redundant JOIN</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.groupby,
+    COUNT(CASE WHEN $PAsearch1 THEN 1 END) AS search1,
+    COUNT(CASE WHEN $PARsearch2 THEN 1 END) AS search2
+FROM
+    B
+    LEFT JOIN A ON A.fkb = B.id
+    LEFT JOIN A ar ON A.id = ar.id
+WHERE B.search = 1 AND B.groupby IS NOT NULL
+GROUP BY B.groupby</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1094</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1118</id>
+              <number>g</number>
+              <name>Redundant GROUP BY PK</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.groupby,
+    COUNT(CASE WHEN $PAsearch1 THEN 1 END) AS search1,
+    COUNT(CASE WHEN $PAsearch2 THEN 1 END) AS search2
+FROM
+    B
+    LEFT JOIN
+    (
+        SELECT A.id, A.fkb, A.search, A.padding
+        FROM A
+        GROUP BY A.id, A.fkb, A.search, A.padding
+    ) A ON A.fkb = B.id
+WHERE B.search = 1 AND B.groupby IS NOT NULL
+GROUP BY B.groupby</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1115</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1134</id>
+              <number>h</number>
+              <name>Redundant subquery</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.groupby,
+    COUNT(CASE WHEN $PAsearch1 THEN 1 END) AS search1,
+    (
+        SELECT COUNT(1)
+        FROM A ar JOIN B br ON br.id = ar.fkb
+        WHERE br.groupby = B.groupby AND $PARsearch2 AND br.search = 1
+    ) search2
+FROM B LEFT JOIN A ON A.fkb = B.id
+WHERE B.search = 1 AND B.groupby IS NOT NULL
+GROUP BY B.groupby</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1131</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+          </variants>
+          <selected_annotations />
+          <expected_result_size>0</expected_result_size>
+          <parametrized>True</parametrized>
+          <parameters>
+            <parameter>
+              <id>488</id>
+              <name>PAsearch1</name>
+            </parameter>
+            <parameter>
+              <id>489</id>
+              <name>PAsearch2</name>
+            </parameter>
+            <parameter>
+              <id>1130</id>
+              <name>PARsearch2</name>
+            </parameter>
+          </parameters>
+          <templates>
+            <template>
+              <id>490</id>
+              <number>high</number>
+              <expected_result_size>9</expected_result_size>
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>746</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </template>
+            <template>
+              <id>495</id>
+              <number>low</number>
+              <expected_result_size>9</expected_result_size>
+              <selected_annotations />
+            </template>
+          </templates>
+          <parameter_values>
+            <parameter_value>
+              <template_id>490</template_id>
+              <parameter_id>488</parameter_id>
+              <value>A.search = 1</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>490</template_id>
+              <parameter_id>489</parameter_id>
+              <value>A.search = 900</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>495</template_id>
+              <parameter_id>488</parameter_id>
+              <value>A.search &lt; 500</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>495</template_id>
+              <parameter_id>489</parameter_id>
+              <value>A.search &gt; 500</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>490</template_id>
+              <parameter_id>1130</parameter_id>
+              <value>Ar.search = 900</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>495</template_id>
+              <parameter_id>1130</parameter_id>
+              <value>Ar.search &gt; 500</value>
+            </parameter_value>
+          </parameter_values>
+        </test>
+        <test>
+          <id>588</id>
+          <number>4</number>
+          <name>Anti join</name>
+          <description></description>
+          <active>True</active>
+          <variants>
+            <variant>
+              <id>589</id>
+              <number>a</number>
+              <name>Not exists</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding
+FROM B
+WHERE
+    $PBsearch AND
+    NOT EXISTS
+    (
+        SELECT 1
+        FROM A
+        WHERE A.search = 1 AND B.id = A.fkb
+    )</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>381</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>390</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>984</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>994</id>
+              <number>b</number>
+              <name>Redundant computation</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding
+FROM B
+WHERE
+    $PBsearch AND
+    NOT EXISTS
+    (
+        SELECT 1
+        FROM A
+        WHERE A.search * 10 = 10 AND B.id = A.fkb
+    )</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>986</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1017</id>
+              <number>c</number>
+              <name>Redundant expression</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding
+FROM B
+WHERE $PBsearch AND NOT EXISTS
+(
+    SELECT 1
+    FROM A
+    WHERE (A.search = 1 OR (1 = 2 AND A.fkb = 1)) AND B.id = A.fkb
+)</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1012</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1034</id>
+              <number>d</number>
+              <name>Redundant GROUP BY</name>
+              <description>Any GROUP BY (without HAVING) in the EXISTS subquery is rendundant since it can not eliminate any result.</description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding
+FROM B
+WHERE
+    $PBsearch AND
+    NOT EXISTS
+    (
+        SELECT 1
+        FROM A
+        WHERE A.search = 1 AND B.id = A.fkb
+        GROUP BY A.search
+    )</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1027</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1112</id>
+              <number>e</number>
+              <name>Redundant JOIN</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding
+FROM B
+WHERE
+    $PBsearch AND
+    NOT EXISTS
+    (
+        SELECT 1
+        FROM A JOIN B br ON br.id = A.fkb
+        WHERE A.search = 1 AND br.id = B.id
+    )</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1094</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1141</id>
+              <number>f</number>
+              <name>Redundant subquery</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.id, B.groupby, B.search, 
+    (
+        SELECT br.padding
+        FROM B br 
+        WHERE B.id = br.id
+    ) padding
+FROM B
+WHERE
+    $PBsearch AND
+    NOT EXISTS
+    (
+        SELECT 1
+        FROM A
+        WHERE A.search = 1 AND B.id = A.fkb
+    )</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1131</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+          </variants>
+          <selected_annotations />
+          <expected_result_size>0</expected_result_size>
+          <parametrized>True</parametrized>
+          <parameters>
+            <parameter>
+              <id>600</id>
+              <name>PBsearch</name>
+            </parameter>
+          </parameters>
+          <templates>
+            <template>
+              <id>601</id>
+              <number>high</number>
+              <expected_result_size>12</expected_result_size>
+              <selected_annotations />
+            </template>
+            <template>
+              <id>611</id>
+              <number>low</number>
+              <expected_result_size>1064</expected_result_size>
+              <selected_annotations />
+            </template>
+          </templates>
+          <parameter_values>
+            <parameter_value>
+              <template_id>601</template_id>
+              <parameter_id>600</parameter_id>
+              <value>B.search = 1</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>611</template_id>
+              <parameter_id>600</parameter_id>
+              <value>B.search &lt; 100</value>
+            </parameter_value>
+          </parameter_values>
+        </test>
+        <test>
+          <id>659</id>
+          <number>5</number>
+          <name>Conditional aggregation 3</name>
+          <description></description>
+          <active>True</active>
+          <variants>
+            <variant>
+              <id>674</id>
+              <number>a</number>
+              <name>Set</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, SUM(c2)
+FROM
+    B JOIN
+    (
+        SELECT fkb, groupby c2
+        FROM A
+        WHERE search = 1
+        UNION ALL
+        SELECT fkb, -groupby c2
+        FROM A
+        WHERE search = 2
+    ) t ON B.id = t.fkb
+WHERE $PBSearch
+GROUP BY B.id</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>387</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>378</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>984</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>996</id>
+              <number>b</number>
+              <name>Redundant computation</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, SUM(c2)
+FROM
+    B JOIN
+    (
+        SELECT fkb , groupby c2
+        FROM A
+        WHERE search + 9 = 10
+        UNION ALL
+        SELECT fkb, -groupby c2
+        FROM A
+        WHERE search * 2 = 4
+    ) t ON B.id = t.fkb
+WHERE $PBSearch
+GROUP BY B.id</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>986</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1018</id>
+              <number>c</number>
+              <name>Redundant expression</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, SUM(c2)
+FROM
+    B JOIN
+    (
+        SELECT fkb , groupby c2
+        FROM A
+        WHERE search = 1 OR (1 = 2 AND fkb = 1)
+        UNION ALL
+        SELECT fkb, -groupby c2
+        FROM A
+        WHERE search = 2
+    ) t ON B.id = t.fkb
+WHERE $PBSearch
+GROUP BY B.id</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1012</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1030</id>
+              <number>d</number>
+              <name>Redundant GROUP BY</name>
+              <description>We perform the same aggregation twice</description>
+              <default_statement>
+                <command_text>SELECT t.id, sum_c2
+FROM
+(
+    SELECT B.id, SUM(c2) sum_c2
+    FROM
+        B JOIN
+        (
+            SELECT fkb , groupby c2
+            FROM A
+            WHERE search = 1
+            UNION ALL
+            SELECT fkb, -groupby c2
+            FROM A
+            WHERE search = 2
+        ) t ON B.id = t.fkb
+    WHERE $PBSearch
+    GROUP BY B.id
+) t
+GROUP BY t.id, t.sum_c2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1027</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1063</id>
+              <number>e</number>
+              <name>Redundant CASE</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, SUM(CASE WHEN t.search IN (1, 2) THEN c2 END)
+FROM
+    B JOIN
+    (
+        SELECT fkb, search, groupby c2
+        FROM A
+        WHERE search = 1
+        UNION ALL
+        SELECT fkb, search, -groupby c2
+        FROM A
+        WHERE search = 2
+    ) t ON B.id = t.fkb
+WHERE $PBSearch
+GROUP BY B.id</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1060</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1074</id>
+              <number>f</number>
+              <name>Redundant EXISTS</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, SUM(c2)
+FROM
+    B JOIN
+    (
+        SELECT fkb, groupby c2
+        FROM A
+        WHERE search = 1
+        UNION ALL
+        SELECT fkb, -groupby c2
+        FROM A
+        WHERE search = 2
+    ) t ON B.id = t.fkb
+WHERE
+    $PBSearch AND
+    (
+        EXISTS
+        (
+            SELECT 1
+            FROM A
+            WHERE A.fkb = B.id AND A.search = 1
+        )
+        OR EXISTS 
+        (
+            SELECT 1
+            FROM A
+            WHERE A.fkb = B.id AND A.search = 2
+        )  
+    )
+GROUP BY B.id</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1071</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1109</id>
+              <number>g</number>
+              <name>Redundant JOIN</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, SUM(c2)
+FROM
+    B
+    JOIN
+    (
+        SELECT fkb, groupby c2
+        FROM A
+        WHERE search = 1
+        UNION ALL
+        SELECT fkb, -groupby c2
+        FROM A
+        WHERE search = 2
+    ) t ON B.id = t.fkb
+    JOIN
+    B br ON br.id = t.fkb
+WHERE $PBSearch
+GROUP BY B.id</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1094</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1098</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1119</id>
+              <number>h</number>
+              <name>Redundant GROUP BY PK</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, SUM(c2)
+FROM
+    B JOIN
+    (
+        SELECT MAX(fkb) fkb, MAX(groupby) c2
+        FROM A
+        WHERE search = 1
+        GROUP BY A.id
+        UNION ALL
+        SELECT MAX(fkb) fkb, -MAX(groupby) c2
+        FROM A
+        WHERE search = 2
+        GROUP BY A.id
+    ) t ON B.id = t.fkb
+WHERE $PBSearch
+GROUP BY B.id</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1115</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+          </variants>
+          <selected_annotations />
+          <expected_result_size>0</expected_result_size>
+          <parametrized>True</parametrized>
+          <parameters>
+            <parameter>
+              <id>661</id>
+              <name>PBSearch</name>
+            </parameter>
+          </parameters>
+          <templates>
+            <template>
+              <id>662</id>
+              <number>high</number>
+              <expected_result_size>2</expected_result_size>
+              <selected_annotations />
+            </template>
+            <template>
+              <id>670</id>
+              <number>low</number>
+              <expected_result_size>256</expected_result_size>
+              <selected_annotations />
+            </template>
+          </templates>
+          <parameter_values>
+            <parameter_value>
+              <template_id>662</template_id>
+              <parameter_id>661</parameter_id>
+              <value>B.search = 1</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>670</template_id>
+              <parameter_id>661</parameter_id>
+              <value>B.search &lt; 200</value>
+            </parameter_value>
+          </parameter_values>
+        </test>
+        <test>
+          <id>827</id>
+          <number>6</number>
+          <name>Anti group join</name>
+          <description>Byl přidán predikát oproti rewriting</description>
+          <active>True</active>
+          <variants>
+            <variant>
+              <id>828</id>
+              <number>a</number>
+              <name>Not exists</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding
+FROM B
+WHERE
+    $PBsearch AND
+    NOT EXISTS
+    (
+        SELECT 1
+        FROM A
+        WHERE B.id = A.fkb AND A.search = 1
+        GROUP BY A.groupby
+        HAVING COUNT(*) = 1
+    )</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>381</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>384</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>984</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1011</id>
+              <number>b</number>
+              <name>Redundant computation</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding
+FROM B
+WHERE
+    $PBsearch AND
+    NOT EXISTS (
+        SELECT 1
+        FROM A
+        WHERE B.id = A.fkb AND A.search * 10 = 10
+        GROUP BY A.groupby
+        HAVING COUNT(*) = 1
+    )</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>986</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1019</id>
+              <number>c</number>
+              <name>Redundant expression</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding
+FROM B
+WHERE
+    $PBsearch AND
+    NOT EXISTS
+    (
+        SELECT 1
+        FROM A
+        WHERE B.id = A.fkb AND (A.search = 1 OR (1 = 2 AND A.fkb = 1))
+        GROUP BY A.groupby
+        HAVING COUNT(*) = 1
+    )</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1012</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1032</id>
+              <number>d</number>
+              <name>Redundant GROUP BY PK</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT t.id, t.groupby, t.search, t.padding
+FROM
+(
+    SELECT B.id, B.groupby, B.search, B.padding
+    FROM B
+    WHERE $PBsearch AND NOT EXISTS 
+    (
+        SELECT 1
+        FROM A
+        WHERE B.id = A.fkb AND A.search = 1
+        GROUP BY A.groupby
+        HAVING COUNT(*) = 1
+    )
+) t
+GROUP BY t.id, t.groupby, t.search, t.padding</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1115</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1064</id>
+              <number>e</number>
+              <name>Redundant CASE</name>
+              <description>The equivalence of count(*) to count(A.id) comes from a fact that PK can not contain NULL value.</description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding
+FROM B
+WHERE
+    $PBsearch AND
+    NOT EXISTS
+    (
+        SELECT 1
+        FROM A
+        WHERE B.id = A.fkb AND A.search = 1
+        GROUP BY A.groupby
+        HAVING COUNT(CASE WHEN A.search = 1 THEN A.id END) = 1
+    )</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1060</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1078</id>
+              <number>f</number>
+              <name>Redundant EXISTS</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding
+FROM B
+WHERE
+    $PBsearch AND
+    NOT EXISTS
+    (
+        SELECT 1
+        FROM A
+        WHERE
+            B.id = A.fkb AND
+            A.search = 1 AND
+            EXISTS 
+            (
+                SELECT 1
+                FROM B
+                WHERE B.id = A.fkb AND $PBsearch
+            )
+        GROUP BY A.groupby
+        HAVING COUNT(*) = 1
+    )</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1071</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1108</id>
+              <number>g</number>
+              <name>Redundant JOIN</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding
+FROM B
+WHERE
+    $PBsearch AND
+    NOT EXISTS
+    (
+        SELECT 1
+        FROM A JOIN B br ON br.id = A.fkb
+        WHERE B.id = A.fkb AND A.search = 1
+        GROUP BY A.groupby
+        HAVING COUNT(*) = 1
+    )</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1098</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1094</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1142</id>
+              <number>h</number>
+              <name>Redundant subquery</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.id, B.groupby, B.search, 
+    (
+        SELECT br.padding
+        FROM B br 
+        WHERE B.id = br.id
+    ) padding
+FROM B
+WHERE
+    $PBsearch AND
+    NOT EXISTS
+    (
+        SELECT 1
+        FROM A
+        WHERE B.id = A.fkb AND A.search = 1
+        GROUP BY A.groupby
+        HAVING COUNT(*) = 1
+    )</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1131</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+          </variants>
+          <selected_annotations />
+          <expected_result_size>0</expected_result_size>
+          <parametrized>True</parametrized>
+          <parameters>
+            <parameter>
+              <id>830</id>
+              <name>PBsearch</name>
+            </parameter>
+          </parameters>
+          <templates>
+            <template>
+              <id>831</id>
+              <number>high</number>
+              <expected_result_size>12</expected_result_size>
+              <selected_annotations />
+            </template>
+            <template>
+              <id>833</id>
+              <number>low</number>
+              <expected_result_size>110</expected_result_size>
+              <selected_annotations />
+            </template>
+          </templates>
+          <parameter_values>
+            <parameter_value>
+              <template_id>831</template_id>
+              <parameter_id>830</parameter_id>
+              <value>B.search = 1</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>833</template_id>
+              <parameter_id>830</parameter_id>
+              <value>B.search &lt; 10</value>
+            </parameter_value>
+          </parameter_values>
+        </test>
+        <test>
+          <id>848</id>
+          <number>7</number>
+          <name>Having distinct join</name>
+          <description></description>
+          <active>True</active>
+          <variants>
+            <variant>
+              <id>849</id>
+              <number>a</number>
+              <name>Having 1</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding 
+FROM B JOIN A ON B.id = A.fkb
+WHERE A.search IN (1, 100)
+GROUP BY B.id, B.groupby, B.search, B.padding 
+HAVING COUNT(DISTINCT A.search) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>382</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>384</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>543</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>984</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>997</id>
+              <number>b</number>
+              <name>Redundant computation</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding 
+FROM B JOIN A ON B.id = A.fkb
+WHERE A.search + 9 IN (10, 109)
+GROUP BY B.id, B.groupby, B.search, B.padding 
+HAVING COUNT(DISTINCT A.search) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>986</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1020</id>
+              <number>c</number>
+              <name>Redudant expression</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding 
+FROM B JOIN A ON B.id = A.fkb
+WHERE A.search IN (1, 100) OR (1 = 2 AND A.fkb = 1)
+GROUP BY B.id, B.groupby, B.search, B.padding 
+HAVING COUNT(DISTINCT A.search) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1012</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1031</id>
+              <number>d</number>
+              <name>Redundant GROUP BY</name>
+              <description>We perform the same aggregation twice</description>
+              <default_statement>
+                <command_text>SELECT t.id, t.groupby, t.search, t.padding 
+FROM
+(
+    SELECT B.id, B.groupby, B.search, B.padding 
+    FROM B JOIN A ON B.id = A.fkb
+    WHERE A.search IN (1, 100)
+    GROUP BY B.id, B.groupby, B.search, B.padding 
+    HAVING COUNT(DISTINCT A.search) = 2
+) t
+GROUP BY t.id, t.groupby, t.search, t.padding </command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1027</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1065</id>
+              <number>e</number>
+              <name>Redundant CASE</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding 
+FROM B JOIN A ON B.id = A.fkb
+WHERE A.search IN (1, 100)
+GROUP BY B.id, B.groupby, B.search, B.padding 
+HAVING COUNT(DISTINCT CASE WHEN A.search IN (1, 100) THEN A.search END) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1060</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1080</id>
+              <number>f</number>
+              <name>Redundant EXISTS</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding 
+FROM B JOIN A ON B.id = A.fkb
+WHERE
+    A.search IN (1, 100) AND
+    EXISTS 
+    (
+        SELECT 1
+        FROM A
+        WHERE A.fkb = B.id AND A.search IN (1, 100)
+    )
+GROUP BY B.id, B.groupby, B.search, B.padding 
+HAVING COUNT(DISTINCT A.search) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1071</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1106</id>
+              <number>g</number>
+              <name>Redundant JOIN</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, br.padding 
+FROM
+    B
+    JOIN A ON B.id = A.fkb
+    JOIN B br ON br.id = A.fkb
+WHERE A.search IN (1, 100)
+GROUP BY B.id, B.groupby, B.search, br.padding 
+HAVING COUNT(DISTINCT A.search) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1094</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1120</id>
+              <number>h</number>
+              <name>Redundant GROUP BY PK</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, B.groupby, B.search, B.padding 
+FROM
+    B JOIN
+    (
+        SELECT A.id, MAX(A.fkb) AS fkb, MAX(A.search) AS search 
+        FROM A
+        GROUP BY A.id
+    ) A ON B.id = A.fkb
+WHERE A.search IN (1, 100)
+GROUP BY B.id, B.groupby, B.search, B.padding 
+HAVING COUNT(DISTINCT A.search) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1115</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+          </variants>
+          <selected_annotations />
+          <expected_result_size>80</expected_result_size>
+          <parametrized>False</parametrized>
+        </test>
+        <test>
+          <id>1000</id>
+          <number>8</number>
+          <name>Group join</name>
+          <description>Tento test byl oproti rewriting presunut a byl pridan predikat</description>
+          <active>True</active>
+          <variants>
+            <variant>
+              <id>1001</id>
+              <number>a</number>
+              <name>Basic</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT COUNT(*)
+FROM A JOIN B ON A.fkb = B.id
+WHERE $PBsearch AND A.search = 1</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>984</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1010</id>
+              <number>b</number>
+              <name>Redundant computation</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT COUNT(*)
+FROM A JOIN B ON A.fkb = B.id
+WHERE $PBsearch AND A.search + 9 = 10</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>986</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1021</id>
+              <number>c</number>
+              <name>Redundant expression</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT COUNT(*)
+FROM A JOIN B ON A.fkb = B.id
+WHERE $PBsearch AND (A.search = 1 OR (1 = 2 AND A.fkb = 1))</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1012</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1029</id>
+              <number>d</number>
+              <name>Redundant GROUP BY</name>
+              <description>There is no need for GROUP BY since there will be always just one group.</description>
+              <default_statement>
+                <command_text>SELECT COUNT(*)
+FROM A JOIN B ON A.fkb = B.id
+WHERE $PBsearch AND A.search = 1
+GROUP BY A.search</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1027</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1066</id>
+              <number>e</number>
+              <name>Redundant CASE</name>
+              <description>The equivalence of count(*) to count(A.id) comes from a fact that PK can not contain NULL value.</description>
+              <default_statement>
+                <command_text>SELECT COUNT(CASE WHEN A.search = 1 THEN A.id END)
+FROM A JOIN B ON A.fkb = B.id
+WHERE $PBsearch AND A.search = 1</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1060</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1082</id>
+              <number>f</number>
+              <name>Redundant EXISTS</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT COUNT(*)
+FROM
+    A JOIN B ON A.fkb = B.id AND EXISTS
+    (
+        SELECT 1
+        FROM A
+        WHERE A.fkb = B.id AND A.search = 1
+    )
+WHERE $PBsearch AND A.search = 1</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1071</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1105</id>
+              <number>g</number>
+              <name>Redundant JOIN</name>
+              <description>We have two joins of the A table with the B tables. The first join uses `A.fkb = B.id` join condition and the $PBsearch predicate. The second join uses the same join condition and the `$PBsearch or B.search &gt; 10` predicate. Let us denote B1 and B2 the sets of the table B that are determined by their predicates. Since the B2 is a superset of B1 then the second join with table B is redundant.</description>
+              <default_statement>
+                <command_text>SELECT COUNT(*)
+FROM
+    A
+    JOIN B ON A.fkb = B.id AND $PBsearch -- B1
+    JOIN B br ON A.fkb = br.id AND ($PBsearch OR B.search &gt; 10) -- B2
+WHERE A.search = 1</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1098</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1094</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1121</id>
+              <number>h</number>
+              <name>Redundant GROUP BY PK</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT COUNT(*)
+FROM
+    (
+        SELECT A.id, MAX(A.fkb) AS fkb, MAX(A.search) AS search, MAX(A.padding) AS padding
+        FROM A
+        GROUP BY A.id
+    ) A
+    JOIN B ON A.fkb = B.id
+WHERE $PBsearch AND A.search = 1</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1115</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+          </variants>
+          <selected_annotations />
+          <expected_result_size>0</expected_result_size>
+          <parametrized>True</parametrized>
+          <parameters>
+            <parameter>
+              <id>1005</id>
+              <name>PBsearch</name>
+            </parameter>
+          </parameters>
+          <templates>
+            <template>
+              <id>1003</id>
+              <number>high</number>
+              <expected_result_size>1</expected_result_size>
+              <selected_annotations />
+            </template>
+            <template>
+              <id>1006</id>
+              <number>low</number>
+              <expected_result_size>1</expected_result_size>
+              <selected_annotations />
+            </template>
+          </templates>
+          <parameter_values>
+            <parameter_value>
+              <template_id>1003</template_id>
+              <parameter_id>1005</parameter_id>
+              <value>B.search = 1</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>1006</template_id>
+              <parameter_id>1005</parameter_id>
+              <value>B.search &lt; 100</value>
+            </parameter_value>
+          </parameter_values>
+        </test>
+        <test>
+          <id>1035</id>
+          <number>3</number>
+          <name>Conditional aggregation 2</name>
+          <description></description>
+          <active>True</active>
+          <variants>
+            <variant>
+              <id>1036</id>
+              <number>a</number>
+              <name>Conditional aggregation 1</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.id, B.padding,
+    MIN(CASE WHEN $PAsearch1 THEN A.search END) AS min_search,
+    MAX(CASE WHEN $PAsearch2 THEN A.search END) AS max_search
+FROM B JOIN A ON A.fkb = B.id
+WHERE B.search = 1
+GROUP BY B.id, B.padding</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>984</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1037</id>
+              <number>b</number>
+              <name>Redundant computation</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.id, B.padding,
+    MIN(CASE WHEN $PAsearch1 THEN A.search END) AS min_search,
+    MAX(CASE WHEN $PAsearch2 THEN A.search END) AS max_search
+FROM B JOIN A ON A.fkb = B.id
+WHERE B.search + 9 = 10
+GROUP BY B.id, B.padding</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>986</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1038</id>
+              <number>c</number>
+              <name>Redundant expression</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.id, B.padding,
+    MIN(CASE WHEN $PAsearch1 THEN A.search END) AS min_search,
+    MAX(CASE WHEN $PAsearch2 THEN A.search END) AS max_search
+FROM B JOIN A ON A.fkb = B.id
+WHERE B.search = 1 OR (1 = 2 AND A.fkb = 1)
+GROUP BY B.id, B.padding</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1012</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1047</id>
+              <number>d</number>
+              <name>Redundant GROUP BY</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT t.id, t.padding, t.min_search, t.max_search
+FROM
+(
+    SELECT
+        B.id, B.padding,
+        MIN(CASE WHEN $PAsearch1 THEN A.search END) AS min_search,
+        MAX(CASE WHEN $PAsearch2 THEN A.search END) AS max_search
+    FROM B JOIN A ON A.fkb = B.id
+    WHERE B.search = 1
+    GROUP BY B.id, B.padding
+) t
+GROUP BY t.id, t.padding, t.min_search, t.max_search</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1027</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1067</id>
+              <number>e</number>
+              <name>Redundant CASE</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.id, B.padding,
+    MIN(CASE WHEN $PAsearch1 AND B.search = 1 THEN A.search END) AS min_search,
+    MAX(CASE WHEN $PAsearch2 AND B.search = 1 THEN A.search END) AS max_search
+FROM B JOIN A ON A.fkb = B.id
+WHERE B.search = 1
+GROUP BY B.id, B.padding</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1060</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1083</id>
+              <number>f</number>
+              <name>Redundant EXISTS</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.id, B.padding,
+    MIN(CASE WHEN $PAsearch1 THEN A.search END) AS min_search,
+    MAX(CASE WHEN $PAsearch2 THEN A.search END) AS max_search
+FROM
+    B
+    JOIN A ON
+        A.fkb = B.id AND
+        EXISTS (SELECT 1 FROM A WHERE A.fkb = B.id) 
+WHERE B.search = 1
+GROUP BY B.id, B.padding</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1071</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1103</id>
+              <number>g</number>
+              <name>Redundant JOIN</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.id, B.padding,
+    MIN(CASE WHEN $PAsearch1 THEN A.search END) AS min_search,
+    MAX(CASE WHEN $PAsearch2 THEN A.search END) AS max_search
+FROM
+    B
+    JOIN A ON A.fkb = B.id
+    JOIN A ar ON ar.fkb = B.id
+WHERE B.search = 1
+GROUP BY B.id, B.padding</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1094</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1122</id>
+              <number>h</number>
+              <name>Redundant GROUP BY PK</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.id, B.padding,
+    MIN(CASE WHEN $PAsearch1 THEN A.search END) AS min_search,
+    MAX(CASE WHEN $PAsearch2 THEN A.search END) AS max_search
+FROM
+    B
+    JOIN
+    (
+        SELECT A.id, MAX(A.fkb) AS fkb, MAX(A.search) AS search, MAX(A.padding) AS padding
+        FROM A
+        GROUP BY A.id
+    ) A ON A.fkb = B.id
+WHERE B.search = 1
+GROUP BY B.id, B.padding</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1115</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1143</id>
+              <number>i</number>
+              <name>Redundant subquery</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.id, B.padding,
+    MIN(CASE WHEN $PAsearch1 THEN A.search END) AS min_search,
+    (
+        SELECT MAX(ar.search)
+        FROM A ar
+        WHERE ar.fkb = B.id AND $PARsearch2
+    ) AS max_search
+FROM B JOIN A ON A.fkb = B.id
+WHERE B.search = 1
+GROUP BY B.id, B.padding</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1131</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+          </variants>
+          <selected_annotations />
+          <expected_result_size>0</expected_result_size>
+          <parametrized>True</parametrized>
+          <parameters>
+            <parameter>
+              <id>1041</id>
+              <name>PAsearch1</name>
+            </parameter>
+            <parameter>
+              <id>1042</id>
+              <name>PAsearch2</name>
+            </parameter>
+            <parameter>
+              <id>1145</id>
+              <name>PARsearch2</name>
+            </parameter>
+          </parameters>
+          <templates>
+            <template>
+              <id>1039</id>
+              <number>high</number>
+              <expected_result_size>11</expected_result_size>
+              <selected_annotations />
+            </template>
+            <template>
+              <id>1043</id>
+              <number>low</number>
+              <expected_result_size>11</expected_result_size>
+              <selected_annotations />
+            </template>
+          </templates>
+          <parameter_values>
+            <parameter_value>
+              <template_id>1039</template_id>
+              <parameter_id>1041</parameter_id>
+              <value>A.search = 1</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>1039</template_id>
+              <parameter_id>1042</parameter_id>
+              <value>A.search = 900</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>1043</template_id>
+              <parameter_id>1041</parameter_id>
+              <value>A.search &lt; 500</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>1043</template_id>
+              <parameter_id>1042</parameter_id>
+              <value>A.search &gt; 500</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>1039</template_id>
+              <parameter_id>1145</parameter_id>
+              <value>Ar.search = 900</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>1043</template_id>
+              <parameter_id>1145</parameter_id>
+              <value>Ar.search &gt; 500</value>
+            </parameter_value>
+          </parameter_values>
+        </test>
+      </tests>
+      <configurations>
+        <configuration>
+          <id>29</id>
+          <number>A</number>
+          <name>Heap</name>
+          <description></description>
+          <init_script>
+            <default_statement_list>
+              <statements />
+            </default_statement_list>
+            <specific_statement_lists />
+          </init_script>
+          <clean_up_script>
+            <default_statement_list>
+              <statements />
+            </default_statement_list>
+            <specific_statement_lists />
+          </clean_up_script>
+        </configuration>
+        <configuration>
+          <id>30</id>
+          <number>B</number>
+          <name>Indexed</name>
+          <description></description>
+          <init_script>
+            <default_statement_list>
+              <statements>
+                <statement>
+                  <command_text>CREATE INDEX ix_A_fkb
+ON A (fkb)
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>CREATE INDEX ix_A_search
+ON A (search)
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>CREATE INDEX ix_B_search
+ON B (search)
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>CREATE INDEX ix_A_search_fkb
+ON A (search, fkb)
+</command_text>
+                </statement>
+              </statements>
+            </default_statement_list>
+            <specific_statement_lists>
+              <specific_statement_list>
+                <provider_name>Microsoft SQL Server</provider_name>
+                <statements>
+                  <statement>
+                    <command_text>CREATE NONCLUSTERED INDEX ix_A_fkb
+ON A (fkb)
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>CREATE NONCLUSTERED INDEX ix_A_search
+ON A (search)
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>CREATE NONCLUSTERED INDEX ix_B_search
+ON B (search)
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>CREATE NONCLUSTERED INDEX ix_A_search_fkb
+ON A (search, fkb)
+
+</command_text>
+                  </statement>
+                </statements>
+              </specific_statement_list>
+            </specific_statement_lists>
+          </init_script>
+          <clean_up_script>
+            <default_statement_list>
+              <statements>
+                <statement>
+                  <command_text>drop index ix_A_fkb
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>drop index ix_A_search
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>drop index ix_B_search
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>drop index ix_A_search_fkb
+</command_text>
+                </statement>
+              </statements>
+            </default_statement_list>
+            <specific_statement_lists>
+              <specific_statement_list>
+                <provider_name>Microsoft SQL Server</provider_name>
+                <statements>
+                  <statement>
+                    <command_text>-- drop the indexes
+drop index A.ix_A_fkb
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>drop index A.ix_A_search
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>drop index B.ix_B_search
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>drop index A.ix_A_search_fkb
+
+</command_text>
+                  </statement>
+                </statements>
+              </specific_statement_list>
+              <specific_statement_list>
+                <provider_name>MySQL</provider_name>
+                <statements>
+                  <statement>
+                    <command_text>alter table A drop index ix_A_fkb
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>alter table A  drop index ix_A_search
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>alter table B drop index ix_B_search
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>alter table A drop index ix_A_search_fkb</command_text>
+                  </statement>
+                </statements>
+              </specific_statement_list>
+            </specific_statement_lists>
+          </clean_up_script>
+        </configuration>
+      </configurations>
+    </test_group>
+    <test_group>
+      <id>37</id>
+      <number>II</number>
+      <name>02</name>
+      <description></description>
+      <tests>
+        <test>
+          <id>424</id>
+          <number>1</number>
+          <name>Semi join 2</name>
+          <description></description>
+          <active>True</active>
+          <variants>
+            <variant>
+              <id>425</id>
+              <number>a</number>
+              <name>Exists</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT b1.id, b1.groupby, b1.search, b1.padding
+FROM B b1
+WHERE
+    EXISTS
+    ( 
+        SELECT 1 
+        FROM A
+        WHERE b1.id = A.fkb
+    )
+    AND $PBsearch</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>381</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>390</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>984</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1022</id>
+              <number>b</number>
+              <name>Redundant expression</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT b1.id, b1.groupby, b1.search, b1.padding
+FROM B b1
+WHERE
+    EXISTS
+    ( 
+        SELECT 1 
+        FROM A
+        WHERE b1.id = A.fkb OR (1 = 2 AND A.search = 1)
+    )
+    AND $PBsearch</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1012</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1048</id>
+              <number>c</number>
+              <name>Redundant GROUP BY</name>
+              <description>Any GROUP BY (without HAVING) in the EXISTS subquery is rendundant since it can not eliminate any result.</description>
+              <default_statement>
+                <command_text>SELECT b1.id, b1.groupby, b1.search, b1.padding
+FROM B b1
+WHERE
+    EXISTS
+    ( 
+        SELECT 1 
+        FROM A
+        WHERE b1.id = A.fkb
+        GROUP BY A.search
+    )
+    AND $PBsearch</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1027</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1086</id>
+              <number>d</number>
+              <name>Redundant EXISTS</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT b1.id, b1.groupby, b1.search, b1.padding
+FROM B b1
+WHERE
+    EXISTS
+    ( 
+        SELECT 1 
+        FROM A
+        WHERE b1.id = A.fkb
+    )
+    AND EXISTS
+    ( 
+        SELECT 1 
+        FROM A
+        WHERE b1.id = A.fkb
+    ) 
+    AND $PBsearch</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1071</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1101</id>
+              <number>e</number>
+              <name>Redundant JOIN</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT b1.id, b1.groupby, b1.search, b1.padding
+FROM B b1
+WHERE
+    EXISTS
+    ( 
+        SELECT 1 
+        FROM A JOIN B ON A.fkb = B.id
+        WHERE b1.id = A.fkb
+    )
+    AND $PBsearch</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1094</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1098</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1125</id>
+              <number>f</number>
+              <name>Redundant GROUP BY PK</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT b1.id, MAX(b1.groupby), MAX(b1.search), MAX(b1.padding)
+FROM B b1
+WHERE
+    EXISTS
+    ( 
+        SELECT 1 
+        FROM A
+        WHERE b1.id = A.fkb
+    )
+    AND $PBsearch
+GROUP BY b1.id</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1115</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1148</id>
+              <number>g</number>
+              <name>Redundant subquery</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    b1.id, b1.groupby, b1.search, 
+    (
+        SELECT br.padding
+        FROM B br 
+        WHERE b1.id = br.id
+    ) padding
+FROM B b1
+WHERE
+    EXISTS
+    (
+        SELECT 1 
+        FROM A
+        WHERE b1.id = A.fkb
+    )
+    AND $PBsearch</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1131</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+          </variants>
+          <selected_annotations />
+          <expected_result_size>0</expected_result_size>
+          <parametrized>True</parametrized>
+          <parameters>
+            <parameter>
+              <id>427</id>
+              <name>PBsearch</name>
+            </parameter>
+          </parameters>
+          <templates>
+            <template>
+              <id>428</id>
+              <number>high</number>
+              <expected_result_size>11</expected_result_size>
+              <selected_annotations />
+            </template>
+            <template>
+              <id>435</id>
+              <number>low</number>
+              <expected_result_size>550</expected_result_size>
+              <selected_annotations />
+            </template>
+          </templates>
+          <parameter_values>
+            <parameter_value>
+              <template_id>428</template_id>
+              <parameter_id>427</parameter_id>
+              <value>b1.search = 1</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>435</template_id>
+              <parameter_id>427</parameter_id>
+              <value>b1.search &lt; 50</value>
+            </parameter_value>
+          </parameter_values>
+        </test>
+        <test>
+          <id>873</id>
+          <number>2</number>
+          <name>Distance from max</name>
+          <description></description>
+          <active>True</active>
+          <variants>
+            <variant>
+              <id>874</id>
+              <number>a</number>
+              <name>Basic</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, MAX(A.groupby) - B.search
+FROM B JOIN A ON A.fkb = B.id
+WHERE $PBsearch
+GROUP BY B.id, B.search</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>382</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>384</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>543</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>984</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1023</id>
+              <number>b</number>
+              <name>Redundant exprerssion</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, MAX(A.groupby) - B.search
+FROM B JOIN A ON A.fkb = B.id OR (1 = 2 AND A.search = 1)
+WHERE $PBsearch
+GROUP BY B.id, B.search</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1012</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1068</id>
+              <number>c</number>
+              <name>Redundant CASE</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, MAX(CASE WHEN $PBsearch THEN A.groupby END) - B.search
+FROM B JOIN A ON A.fkb = B.id
+WHERE $PBsearch
+GROUP BY B.id, B.search</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1060</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1087</id>
+              <number>d</number>
+              <name>Redundant EXISTS</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, MAX(A.groupby) - B.search
+FROM
+    B
+    JOIN A ON A.fkb = B.id AND EXISTS
+    (
+        SELECT 1
+        FROM A
+        WHERE A.fkb = B.id
+    )
+WHERE $PBsearch
+GROUP BY B.id, B.search</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1071</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1100</id>
+              <number>e</number>
+              <name>Redundant JOIN</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, MAX(A.groupby) - B.search
+FROM
+    B
+    JOIN A ON A.fkb = B.id
+    JOIN B br ON A.fkb = br.id  
+WHERE $PBsearch
+GROUP BY B.id, B.search</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1098</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1094</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1126</id>
+              <number>f</number>
+              <name>Redundant GROUP BY PK</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT B.id, MAX(A.groupby) - B.search
+FROM
+    B JOIN 
+    (
+        SELECT A.id, MAX(A.fkb) fkb, MAX(A.groupby) groupby, MAX(A.padding) padding
+        FROM A
+        GROUP BY A.id
+    ) A ON A.fkb = B.id
+WHERE $PBsearch
+GROUP BY B.id, B.search</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1115</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1149</id>
+              <number>g</number>
+              <name>Redundant subquery</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    B.id,
+    (
+        SELECT MAX(ar.groupby)
+        FROM A ar
+        WHERE ar.fkb = B.id
+    ) - B.search
+FROM B JOIN A ON A.fkb = B.id
+WHERE $PBsearch
+GROUP BY B.id, B.search</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1131</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+          </variants>
+          <selected_annotations />
+          <expected_result_size>0</expected_result_size>
+          <parametrized>True</parametrized>
+          <parameters>
+            <parameter>
+              <id>876</id>
+              <name>PBsearch</name>
+            </parameter>
+          </parameters>
+          <templates>
+            <template>
+              <id>875</id>
+              <number>high</number>
+              <expected_result_size>11</expected_result_size>
+              <selected_annotations />
+            </template>
+            <template>
+              <id>877</id>
+              <number>low</number>
+              <expected_result_size>550</expected_result_size>
+              <selected_annotations />
+            </template>
+          </templates>
+          <parameter_values>
+            <parameter_value>
+              <template_id>875</template_id>
+              <parameter_id>876</parameter_id>
+              <value>B.search = 1</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>877</template_id>
+              <parameter_id>876</parameter_id>
+              <value>B.search &lt; 50</value>
+            </parameter_value>
+          </parameter_values>
+        </test>
+      </tests>
+      <configurations>
+        <configuration>
+          <id>97</id>
+          <number>A</number>
+          <name>Heap</name>
+          <description></description>
+          <init_script>
+            <default_statement_list>
+              <statements />
+            </default_statement_list>
+            <specific_statement_lists />
+          </init_script>
+          <clean_up_script>
+            <default_statement_list>
+              <statements />
+            </default_statement_list>
+            <specific_statement_lists />
+          </clean_up_script>
+        </configuration>
+        <configuration>
+          <id>98</id>
+          <number>B</number>
+          <name>Indexed</name>
+          <description></description>
+          <init_script>
+            <default_statement_list>
+              <statements>
+                <statement>
+                  <command_text>CREATE INDEX ix_A_fkb
+ON A (fkb)
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>CREATE INDEX ix_A_fkb_groupby
+ON A (fkb, groupby)
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>CREATE INDEX ix_B_search
+ON B (search)
+</command_text>
+                </statement>
+              </statements>
+            </default_statement_list>
+            <specific_statement_lists>
+              <specific_statement_list>
+                <provider_name>Microsoft SQL Server</provider_name>
+                <statements>
+                  <statement>
+                    <command_text>CREATE NONCLUSTERED INDEX ix_A_fkb
+ON A (fkb)
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>CREATE NONCLUSTERED INDEX ix_A_fkb_groupby
+ON A (fkb, groupby)
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>CREATE NONCLUSTERED INDEX ix_B_search
+ON B (search)
+</command_text>
+                  </statement>
+                </statements>
+              </specific_statement_list>
+            </specific_statement_lists>
+          </init_script>
+          <clean_up_script>
+            <default_statement_list>
+              <statements>
+                <statement>
+                  <command_text>drop index ix_A_fkb
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>drop index ix_A_fkb_groupby
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>drop index ix_B_search
+</command_text>
+                </statement>
+              </statements>
+            </default_statement_list>
+            <specific_statement_lists>
+              <specific_statement_list>
+                <provider_name>Microsoft SQL Server</provider_name>
+                <statements>
+                  <statement>
+                    <command_text>drop index A.ix_A_fkb
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>drop index A.ix_A_fkb_groupby
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>drop index B.ix_B_search
+</command_text>
+                  </statement>
+                </statements>
+              </specific_statement_list>
+              <specific_statement_list>
+                <provider_name>MySQL</provider_name>
+                <statements>
+                  <statement>
+                    <command_text>alter table A drop index ix_A_fkb
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>alter table A drop index ix_A_fkb_groupby
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>alter table B drop index ix_B_search
+</command_text>
+                  </statement>
+                </statements>
+              </specific_statement_list>
+            </specific_statement_lists>
+          </clean_up_script>
+        </configuration>
+      </configurations>
+    </test_group>
+    <test_group>
+      <id>102</id>
+      <number>III</number>
+      <name>03</name>
+      <description></description>
+      <tests>
+        <test>
+          <id>572</id>
+          <number>1</number>
+          <name>Having distinct</name>
+          <description></description>
+          <active>True</active>
+          <variants>
+            <variant>
+              <id>573</id>
+              <number>a</number>
+              <name>Having 1</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT groupby
+FROM A
+WHERE
+    groupby IS NOT NULL AND
+    search IN (1, 500)
+GROUP BY groupby
+HAVING COUNT(DISTINCT search) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>382</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>384</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>984</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>998</id>
+              <number>b</number>
+              <name>Redundant computation</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT groupby
+FROM A
+WHERE
+    groupby IS NOT NULL AND
+    search * 2 IN (2, 1000)
+GROUP BY groupby
+HAVING COUNT(DISTINCT search) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>986</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1024</id>
+              <number>c</number>
+              <name>Redundant expression</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT groupby
+FROM A
+WHERE
+    groupby IS NOT NULL AND 
+    search IN (1, 500) OR (1 = 2 AND A.search = 1)
+GROUP BY groupby
+HAVING COUNT(DISTINCT search) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1012</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1069</id>
+              <number>d</number>
+              <name>Redundant CASE</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT groupby
+FROM A
+WHERE
+    groupby IS NOT NULL AND
+    search IN (1, 500)
+GROUP BY groupby
+HAVING COUNT(DISTINCT CASE WHEN search IN (1, 500) THEN search END) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1060</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1089</id>
+              <number>e</number>
+              <name>Redundant EXISTS</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT groupby
+FROM A
+WHERE
+    groupby IS NOT NULL AND
+    search IN (1, 500) AND EXISTS
+    (
+        SELECT 1
+        FROM A
+        WHERE A.id = A.id AND search = 1
+    )
+GROUP BY groupby
+HAVING COUNT(DISTINCT search) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1071</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1099</id>
+              <number>f</number>
+              <name>Redundant JOIN</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT A.groupby
+FROM A JOIN A ar ON A.id = ar.id
+WHERE
+    A.groupby IS NOT NULL AND
+    ar.search IN (1, 500)
+GROUP BY A.groupby
+HAVING COUNT(DISTINCT A.search) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1094</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1123</id>
+              <number>g</number>
+              <name>Redundant GROUP BY PK</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT groupby
+FROM
+(
+    SELECT A.id, MAX(A.groupby) AS groupby, MAX(A.search) AS search, MAX(A.padding) AS padding
+    FROM A
+    GROUP BY A.id
+) A
+WHERE
+    groupby IS NOT NULL AND
+    search IN (1, 500)
+GROUP BY groupby
+HAVING COUNT(DISTINCT search) = 2</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1115</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+          </variants>
+          <selected_annotations />
+          <expected_result_size>100</expected_result_size>
+          <parametrized>False</parametrized>
+        </test>
+        <test>
+          <id>621</id>
+          <number>2</number>
+          <name>Greatest</name>
+          <description></description>
+          <active>True</active>
+          <variants>
+            <variant>
+              <id>622</id>
+              <number>a</number>
+              <name>Inline subquery</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT a1.id, a1.groupby, a1.fkb, a1.padding
+FROM
+    A a1
+    JOIN
+    (
+        SELECT MAX(search) search_max
+        FROM A
+        WHERE A.groupby = 1 AND A.fkb IS NOT NULL
+    ) t2 ON
+        a1.search = t2.search_max AND
+        a1.groupby = 1 AND
+        a1.fkb IS NOT NULL
+            </command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>379</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>384</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>984</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1025</id>
+              <number>b</number>
+              <name>Redundant expression</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT a1.id, a1.groupby, a1.fkb, a1.padding
+FROM
+    A a1
+    JOIN
+    (
+        SELECT MAX(search) search_max
+        FROM A
+        WHERE
+            (A.groupby = 1 AND A.fkb IS NOT NULL) OR
+            (1 = 2 AND A.search = 1)
+    ) t2 ON
+        a1.search = t2.search_max AND
+        a1.groupby = 1 AND
+        a1.fkb IS NOT NULL
+            
+        
+</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1012</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1049</id>
+              <number>c</number>
+              <name>Redundant GROUP BY</name>
+              <description>There is no need for GROUP BY since there will be always just one group.</description>
+              <default_statement>
+                <command_text>SELECT A.id, A.groupby, A.fkb, A.padding
+FROM A
+JOIN
+(
+    SELECT groupby, MAX(search) search_max
+    FROM A
+    WHERE A.fkb IS NOT NULL
+    GROUP BY groupby
+) t ON
+    A.groupby = t.groupby AND
+    A.search = t.search_max AND 
+    A.groupby = 1 AND A.fkb IS NOT NULL</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1027</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1070</id>
+              <number>d</number>
+              <name>Redundant CASE</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT a1.id, a1.groupby, a1.fkb, a1.padding
+FROM A a1
+JOIN
+(
+    SELECT MAX(CASE WHEN A.groupby = 1 THEN search END) search_max
+    FROM A
+    WHERE A.groupby = 1 AND A.fkb IS NOT NULL
+) t2 ON
+    a1.search = t2.search_max AND
+    a1.groupby = 1 AND
+    a1.fkb IS NOT NULL
+        </command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1060</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1090</id>
+              <number>e</number>
+              <name>Redundant EXISTS</name>
+              <description>This variant combines two possible solutions of the greatest per group problem.</description>
+              <default_statement>
+                <command_text>SELECT a1.id, a1.groupby, a1.fkb, a1.padding
+FROM
+    A a1
+    JOIN
+    (
+        SELECT MAX(search) search_max
+        FROM A
+        WHERE A.groupby = 1 AND A.fkb IS NOT NULL
+    ) t2 ON
+        a1.search = t2.search_max AND
+        a1.groupby = 1 AND
+        a1.fkb IS NOT NULL AND
+        NOT EXISTS
+        (
+            SELECT 1
+            FROM A
+            WHERE A.groupby = a1.groupby AND A.groupby &gt; a1.groupby
+        )  </command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1071</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1093</id>
+              <number>f</number>
+              <name>Redundant JOIN</name>
+              <description>JOIN can be replaced by `A.fkb is not null` expression in this case, if A.fkb is foreign key.</description>
+              <default_statement>
+                <command_text>SELECT a1.id, a1.groupby, a1.fkb, a1.padding
+FROM
+    A a1
+    JOIN
+    (
+        SELECT MAX(A.search) search_max
+        FROM A JOIN B ON B.id = A.fkb
+        WHERE A.groupby = 1
+    ) t2 ON
+        a1.search = t2.search_max AND
+        a1.groupby = 1 AND
+        a1.fkb IS NOT NULL
+            </command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1094</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1098</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1124</id>
+              <number>g</number>
+              <name>Redundant GROUP BY PK</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT a1.id, MAX(a1.groupby), MAX(a1.fkb), MAX(a1.padding)
+FROM
+    A a1
+    JOIN
+    (
+        SELECT MAX(search) search_max
+        FROM A
+        WHERE A.groupby = 1 AND A.fkb IS NOT NULL
+    ) t2 ON
+        a1.search = t2.search_max AND
+        a1.groupby = 1 AND a1.fkb IS NOT NULL
+GROUP BY a1.id</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1115</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1151</id>
+              <number>h</number>
+              <name>Redundant subquery</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT
+    a1.id, a1.groupby, a1.fkb, 
+    (
+        SELECT ar.padding
+        FROM A ar 
+        WHERE a1.id = ar.id
+    ) padding
+FROM
+    A a1
+    JOIN
+    (
+        SELECT MAX(search) search_max
+        FROM A
+        WHERE A.groupby = 1 AND A.fkb IS NOT NULL
+    ) t2 ON
+        a1.search = t2.search_max AND
+        a1.groupby = 1 AND
+        a1.fkb IS NOT NULL</command_text>
+              </default_statement>
+              <specific_statements />
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1131</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+          </variants>
+          <selected_annotations />
+          <expected_result_size>11</expected_result_size>
+          <parametrized>False</parametrized>
+        </test>
+        <test>
+          <id>682</id>
+          <number>3</number>
+          <name>Greatest aggregation per group</name>
+          <description></description>
+          <active>True</active>
+          <variants>
+            <variant>
+              <id>683</id>
+              <number>a</number>
+              <name>Having + All</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT groupby, $AggFn c2
+FROM A
+WHERE $PAsearch AND A.fkb IS NOT NULL
+GROUP BY groupby
+HAVING
+    $AggFn &gt;= ALL
+    (
+        SELECT $AggFn
+        FROM A
+        WHERE $PAsearch
+        GROUP BY groupby  
+        HAVING $AggFn IS NOT NULL
+    )</command_text>
+              </default_statement>
+              <specific_statements>
+                <specific_statement>
+                  <provider_name>SQLite</provider_name>
+                  <not_supported>False</not_supported>
+                  <command_text>SELECT groupby, $AggFn c2
+FROM A
+WHERE $PAsearch AND A.fkb IS NOT NULL
+GROUP BY groupby
+HAVING
+    $AggFn =
+    (
+        SELECT MAX(agg)
+        FROM
+        (
+            SELECT $AggFn agg
+            FROM A
+            WHERE $PAsearch
+            GROUP BY groupby  
+            HAVING $AggFn IS NOT NULL
+        ) t
+    )</command_text>
+                </specific_statement>
+              </specific_statements>
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>380</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>384</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>984</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1026</id>
+              <number>b</number>
+              <name>Redundant expression</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT groupby, $AggFn c2
+FROM A
+WHERE
+    ($PAsearch AND A.fkb IS NOT NULL) OR 
+    (1 = 2 AND A.search = 1)
+GROUP BY groupby
+HAVING
+    $AggFn &gt;= ALL
+    (
+        SELECT $AggFn
+        FROM A
+        WHERE $PAsearch
+        GROUP BY groupby  
+        HAVING $AggFn IS NOT NULL
+    ) </command_text>
+              </default_statement>
+              <specific_statements>
+                <specific_statement>
+                  <provider_name>SQLite</provider_name>
+                  <not_supported>False</not_supported>
+                  <command_text>SELECT groupby, $AggFn c2
+FROM A
+WHERE
+    ($PAsearch AND A.fkb IS NOT NULL) OR 
+    (1 = 2 AND A.search = 1)
+GROUP BY groupby
+HAVING
+    $AggFn =
+    (
+        SELECT MAX(agg)
+        FROM
+        (
+            SELECT $AggFn agg
+            FROM A
+            WHERE $PAsearch
+            GROUP BY groupby  
+            HAVING $AggFn IS NOT NULL
+        ) t
+    )</command_text>
+                </specific_statement>
+              </specific_statements>
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1012</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1050</id>
+              <number>c</number>
+              <name>Redundant GROUP BY</name>
+              <description>We perform the same aggregation twice</description>
+              <default_statement>
+                <command_text>SELECT t.groupby, MAX(t.c2)
+FROM
+(
+    SELECT groupby, $AggFn c2
+    FROM A
+    WHERE $PAsearch AND A.fkb IS NOT NULL
+    GROUP BY groupby
+    HAVING
+        $AggFn &gt;= ALL
+        (
+            SELECT $AggFn
+            FROM A
+            WHERE $PAsearch
+            GROUP BY groupby  
+            HAVING $AggFn IS NOT NULL
+        )
+) t
+GROUP BY groupby</command_text>
+              </default_statement>
+              <specific_statements>
+                <specific_statement>
+                  <provider_name>SQLite</provider_name>
+                  <not_supported>False</not_supported>
+                  <command_text>SELECT t.groupby, MAX(t.c2)
+FROM
+(
+    SELECT groupby, $AggFn c2
+    FROM A
+    WHERE $PAsearch AND A.fkb IS NOT NULL
+    GROUP BY groupby
+    HAVING
+        $AggFn =
+        (
+            SELECT MAX(agg)
+            FROM
+            (
+                SELECT $AggFn agg
+                FROM A
+                WHERE $PAsearch
+                GROUP BY groupby  
+                HAVING $AggFn IS NOT NULL
+            ) t
+        )
+) t
+GROUP BY groupby</command_text>
+                </specific_statement>
+              </specific_statements>
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1027</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+            <variant>
+              <id>1095</id>
+              <number>d</number>
+              <name>Redundant JOIN</name>
+              <description></description>
+              <default_statement>
+                <command_text>SELECT A.groupby, $AggFn c2
+FROM A JOIN A ar ON ar.id = A.id AND $PARsearch
+GROUP BY A.groupby
+HAVING
+    $AggFn &gt;= ALL
+    (
+        SELECT $AggFn
+        FROM A
+        WHERE $PAsearch
+        GROUP BY groupby  
+        HAVING $AggFn IS NOT NULL
+    )</command_text>
+              </default_statement>
+              <specific_statements>
+                <specific_statement>
+                  <provider_name>SQLite</provider_name>
+                  <not_supported>False</not_supported>
+                  <command_text>SELECT A.groupby, $AggFn c2
+FROM A JOIN A ar ON ar.id = A.id AND $PARsearch
+GROUP BY A.groupby
+HAVING
+    $AggFn =
+    (
+        SELECT MAX(agg)
+        FROM
+        (
+            SELECT $AggFn agg
+            FROM A
+            WHERE $PAsearch
+            GROUP BY groupby  
+            HAVING $AggFn IS NOT NULL
+        ) t
+    )</command_text>
+                </specific_statement>
+              </specific_statements>
+              <selected_annotations>
+                <selected_annotation>
+                  <annotation_id>1094</annotation_id>
+                </selected_annotation>
+                <selected_annotation>
+                  <annotation_id>1033</annotation_id>
+                </selected_annotation>
+              </selected_annotations>
+            </variant>
+          </variants>
+          <selected_annotations />
+          <expected_result_size>0</expected_result_size>
+          <parametrized>True</parametrized>
+          <parameters>
+            <parameter>
+              <id>685</id>
+              <name>PAsearch</name>
+            </parameter>
+            <parameter>
+              <id>692</id>
+              <name>AggFn</name>
+            </parameter>
+            <parameter>
+              <id>1128</id>
+              <name>PARsearch</name>
+            </parameter>
+          </parameters>
+          <templates>
+            <template>
+              <id>686</id>
+              <number>high</number>
+              <expected_result_size>1</expected_result_size>
+              <selected_annotations />
+            </template>
+            <template>
+              <id>690</id>
+              <number>low</number>
+              <expected_result_size>1</expected_result_size>
+              <selected_annotations />
+            </template>
+          </templates>
+          <parameter_values>
+            <parameter_value>
+              <template_id>686</template_id>
+              <parameter_id>685</parameter_id>
+              <value>A.search = 1</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>690</template_id>
+              <parameter_id>685</parameter_id>
+              <value>A.search &lt; 10</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>686</template_id>
+              <parameter_id>692</parameter_id>
+              <value>sum(A.orderby)</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>690</template_id>
+              <parameter_id>692</parameter_id>
+              <value>sum(A.orderby)</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>686</template_id>
+              <parameter_id>1128</parameter_id>
+              <value>ar.search = 1</value>
+            </parameter_value>
+            <parameter_value>
+              <template_id>690</template_id>
+              <parameter_id>1128</parameter_id>
+              <value>ar.search &lt; 10</value>
+            </parameter_value>
+          </parameter_values>
+        </test>
+      </tests>
+      <configurations>
+        <configuration>
+          <id>145</id>
+          <number>A</number>
+          <name>Heap</name>
+          <description></description>
+          <init_script>
+            <default_statement_list>
+              <statements />
+            </default_statement_list>
+            <specific_statement_lists />
+          </init_script>
+          <clean_up_script>
+            <default_statement_list>
+              <statements />
+            </default_statement_list>
+            <specific_statement_lists />
+          </clean_up_script>
+        </configuration>
+        <configuration>
+          <id>146</id>
+          <number>B</number>
+          <name>Indexed</name>
+          <description></description>
+          <init_script>
+            <default_statement_list>
+              <statements>
+                <statement>
+                  <command_text>CREATE INDEX ix_A_fkb
+ON A (fkb)
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>CREATE INDEX ix_A_fkb_groupby
+ON A (fkb, groupby)
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>CREATE INDEX ix_A_search
+ON A (search,id)
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>CREATE INDEX ix_A_groupby_search
+ON A (groupby, search)
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>CREATE INDEX ix_A_search_groupby
+ON A (search, groupby)</command_text>
+                </statement>
+              </statements>
+            </default_statement_list>
+            <specific_statement_lists>
+              <specific_statement_list>
+                <provider_name>Microsoft SQL Server</provider_name>
+                <statements>
+                  <statement>
+                    <command_text>CREATE NONCLUSTERED INDEX ix_A_fkb
+ON A (fkb)
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>CREATE NONCLUSTERED INDEX ix_A_fkb_groupby
+ON A (fkb, groupby)
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>CREATE NONCLUSTERED INDEX ix_A_search
+ON A (search)
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>CREATE NONCLUSTERED INDEX ix_A_groupby_search
+ON A (groupby, search)
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>CREATE NONCLUSTERED INDEX ix_A_search_groupby
+ON A (search, groupby)</command_text>
+                  </statement>
+                </statements>
+              </specific_statement_list>
+            </specific_statement_lists>
+          </init_script>
+          <clean_up_script>
+            <default_statement_list>
+              <statements>
+                <statement>
+                  <command_text>drop index ix_A_fkb
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>drop index ix_A_fkb_groupby
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>drop index ix_A_search
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>drop index ix_A_groupby_search
+</command_text>
+                </statement>
+                <statement>
+                  <command_text>drop index ix_A_search_groupby</command_text>
+                </statement>
+              </statements>
+            </default_statement_list>
+            <specific_statement_lists>
+              <specific_statement_list>
+                <provider_name>Microsoft SQL Server</provider_name>
+                <statements>
+                  <statement>
+                    <command_text>drop index A.ix_A_fkb
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>drop index A.ix_A_fkb_groupby
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>drop index A.ix_A_search
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>drop index A.ix_A_groupby_search
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>drop index A.ix_A_search_groupby</command_text>
+                  </statement>
+                </statements>
+              </specific_statement_list>
+              <specific_statement_list>
+                <provider_name>MySQL</provider_name>
+                <statements>
+                  <statement>
+                    <command_text>alter table A drop index ix_A_fkb
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>alter table A drop index ix_A_fkb_groupby
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>alter table A drop index ix_A_search
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>alter table A drop index ix_A_groupby_search
+</command_text>
+                  </statement>
+                  <statement>
+                    <command_text>alter table A drop index ix_A_search_groupby</command_text>
+                  </statement>
+                </statements>
+              </specific_statement_list>
+            </specific_statement_lists>
+          </clean_up_script>
+        </configuration>
+      </configurations>
+    </test_group>
+  </test_groups>
+  <connection_settings>
+    <current_provider>Microsoft SQL Server</current_provider>
+    <providers>
+      <provider name="Microsoft SQL Server" use_connection_string="true" data_source="" initial_catalog="" integrated_security="true" user_id="" password="" connection_string="" disable_parallel_query_processing="true" />
+      <provider name="Oracle Database" use_connection_string="false" user_name="" password="" host_name="" port="1521" s_id="" connection_string="" command_timeout="300" disable_parallel_query_processing="true" />
+      <provider name="PostgreSQL" use_connection_string="false" host="" user_name="" password="" database="" command_timeout="300" connection_string="" disable_parallel_query_processing="true" />
+      <provider name="MySQL" use_connection_string="false" host_name="" user_name="" password="" default_schema="" connection_string="" command_timeout="300" />
+      <provider name="SQLite" use_connection_string="false" file_name="data.sqlite" in_memory="true" connection_string="" command_timeout="300" />
+      <provider name="H2" use_connection_string="false" url="" user_name="" password="" connection_string="" command_timeout="300" />
+      <provider name="Firebird" use_connection_string="false" host_name="" user_name="" password="" database="" admin_role="false" connection_string="" command_timeout="300" />
+    </providers>
+  </connection_settings>
+  <test_runs />
+  <annotations>
+    <annotation>
+      <id>984</id>
+      <number>A1</number>
+      <name>Nonredundant</name>
+      <description></description>
+    </annotation>
+    <annotation>
+      <id>986</id>
+      <number>A2</number>
+      <name>Extra algebralic operator</name>
+      <description>Predicate can be simplified</description>
+    </annotation>
+    <annotation>
+      <id>1012</id>
+      <number>A3</number>
+      <name>False expression</name>
+      <description>Some expression can be eliminated because it has to be always false</description>
+    </annotation>
+    <annotation>
+      <id>1027</id>
+      <number>A4</number>
+      <name>Unnecessary aggregation</name>
+      <description>GROUP BY construct can be removed</description>
+    </annotation>
+    <annotation>
+      <id>1033</id>
+      <number>PK</number>
+      <name>id attributes needs to be PK</name>
+      <description>The rewrite is not correct if the `id` is not a primary key</description>
+    </annotation>
+    <annotation>
+      <id>1060</id>
+      <number>A5</number>
+      <name>Unnecessary CASE condition</name>
+      <description></description>
+    </annotation>
+    <annotation>
+      <id>1071</id>
+      <number>A6</number>
+      <name>Unnecessary semi-join</name>
+      <description>EXISTS condition in the WHERE clause is rendundant and can be removed</description>
+    </annotation>
+    <annotation>
+      <id>1094</id>
+      <number>A7</number>
+      <name>Unnecessary join</name>
+      <description>We introduce a redudant join </description>
+    </annotation>
+    <annotation>
+      <id>1098</id>
+      <number>FK</number>
+      <name>fkb attribute needs to be FK</name>
+      <description>The rewrite is not correct if the `A.fkb` attribute is no a foreign key referencing to the `A.id` primary key</description>
+    </annotation>
+    <annotation>
+      <id>1115</id>
+      <number>A8</number>
+      <name>Aggregation along PK</name>
+      <description>We introduce an unnecessary aggreagtion according to the primary key</description>
+    </annotation>
+    <annotation>
+      <id>1131</id>
+      <number>A9</number>
+      <name>Subquery</name>
+      <description>The rewrite introduce redundant subquery behind SELECT, together with redundant JOIN</description>
+    </annotation>
+  </annotations>
+  <test_run_settings>
+    <run_init_script>True</run_init_script>
+    <run_clean_up_script>False</run_clean_up_script>
+    <check_result_sizes>True</check_result_sizes>
+    <compare_results>True</compare_results>
+    <query_runs>1</query_runs>
+    <test_loops>1</test_loops>
+    <close_on_complete>False</close_on_complete>
+    <ignore_annotations />
+  </test_run_settings>
+  <last_id>1169</last_id>
+</sql_benchmark>
